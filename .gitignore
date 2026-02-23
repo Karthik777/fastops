@@ -150,3 +150,9 @@ checklink/cookies.txt
 
 # Quarto
 .quarto
+
+# Generated files from examples/tests
+Caddyfile
+proxy.conf
+docker-compose.yml
+Dockerfile
