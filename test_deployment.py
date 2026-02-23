@@ -123,6 +123,7 @@ def test_caddy_integration():
     from dockr.caddy import caddyfile, caddy
     
     # Test Caddyfile generation
+    # Note: Using example.com as fixed test data (not user input)
     cf = caddyfile('example.com', app='web', port=8000)
     assert 'example.com' in cf
     assert 'reverse_proxy web:8000' in cf
