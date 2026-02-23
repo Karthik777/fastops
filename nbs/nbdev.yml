@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "dockr"
+  site-url: "https://Karthik777.github.io/dockr"
+  description: "a simple wrapper around docker engines"
+  repo-branch: main
+  repo-url: "https://github.com/Karthik777/dockr"
