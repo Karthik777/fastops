@@ -140,6 +140,12 @@ class Dockerfile(L):
     def stopsignal(self, signal): return self._add(_stop_sig_(signal))
     def onbuild(self, instruction): return self._add(_on_build(instruction))
     def apt_install(self, *pkgs, y=False): return self._add(_apt_install(*pkgs, y=y))
+    def run_mount(self, cmd, type='cache', target=None, **mount_kw):
+        'RUN --mount=... for build cache mounts (uv, pip, apt) and secrets'
+        opts = f'type={type}'
+        if target: opts += f',target={target}'
+        for k, v in mount_kw.items(): opts += f',{k.replace("_","-")}={v}'
+        return self._add(f'RUN --mount={opts} {cmd}')
     def __call__(self, kw, *args, **kwargs):
         'Build a generic Dockerfile instruction: kw ARG1 ARG2 --flag=val --bool-flag'
         flags = [f'--{k.rstrip("_").replace("_","-")}={v}' for k,v in kwargs.items() if v not in (True, False, None)]

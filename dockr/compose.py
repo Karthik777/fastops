@@ -117,5 +117,5 @@ def swag(domain, app='app', port=None, conf_path='proxy.conf',
 def appfile(port=5001, volume='/app/data', image='python:3.12-slim'):
     'Standard Python webapp Dockerfile'
     df = Dockerfile().from_(image).workdir('/app').copy('requirements.txt', '.').run('pip install --no-cache-dir -r requirements.txt').copy('.', '.')
-    if volume: df = df.volume(volume)
+    if volume: df = df.run(f'mkdir -p {volume}')
     return df.expose(port).cmd(['python', 'main.py'])
