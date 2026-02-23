@@ -170,9 +170,10 @@ def _clean_cfg():
     return str(dst)
 
 def calldocker(*args, no_creds=False):
-    'Run a docker CLI command, return stdout'
-    pre = ('--config', _clean_cfg()) if no_creds else ()
-    return subprocess.run(('docker',) + pre + args, capture_output=True, text=True, check=True).stdout.strip()
+    'Run a docker CLI command, return stdout. Respects DOCKR_RUNTIME env var (default: docker).'
+    rt = os.environ.get('DOCKR_RUNTIME', 'docker')
+    pre = ('--config', _clean_cfg()) if no_creds and rt == 'docker' else ()
+    return subprocess.run((rt,) + pre + args, capture_output=True, text=True, check=True).stdout.strip()
 
 class Docker:
     'Wrap docker CLI: __getattr__ dispatches subcommands, kwargs become flags'
