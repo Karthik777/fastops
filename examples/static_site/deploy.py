@@ -5,7 +5,7 @@ Static Site Deployment with dockr
 This example demonstrates deploying a static website with:
 - nginx web server
 - Optional Caddy reverse proxy with automatic HTTPS
-- CloudFlare integration for CDN
+- Cloudflare integration for CDN
 """
 
 from dockr.core import Dockerfile

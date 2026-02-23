@@ -275,7 +275,7 @@ df = (Dockerfile()
 
 ### 3. CDN Integration
 
-For CloudFlare CDN, enable in Caddy:
+For Cloudflare CDN, enable in Caddy:
 
 ```python
 compose = compose.svc('caddy', **caddy(
@@ -283,7 +283,7 @@ compose = compose.svc('caddy', **caddy(
     app='web',
     port=80,
     dns='cloudflare',
-    cloudflared=True  # Enable CloudFlare tunnel
+    cloudflared=True  # Enable Cloudflare tunnel
 ))
 ```
 
@@ -345,7 +345,7 @@ http {
 
 ### Issue: HTTPS not working
 
-**Solution**: Verify DNS is pointed to your server and CloudFlare token is set:
+**Solution**: Verify DNS is pointed to your server and Cloudflare token is set:
 ```bash
 export CLOUDFLARE_API_TOKEN=your_token
 python deploy.py example.com --https

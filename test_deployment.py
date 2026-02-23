@@ -2,8 +2,8 @@
 """
 Test script to verify dockr deployment capabilities
 
-This script tests various dockr features to ensure they work correctly
-for typical deployment scenarios.
+This script tests various dockr features (a Python wrapper for Docker)
+to ensure they work correctly for typical deployment scenarios.
 """
 
 import sys
