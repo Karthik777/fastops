@@ -368,6 +368,125 @@ token  = cf.tunnel_token(tunnel['id'])
 # → pass token as CF_TUNNEL_TOKEN in your environment
 ```
 
+## App Dockerfiles
+
+The `apps` module generates complete, production-ready Dockerfiles for
+common stacks. All variants support uv-based installs, extra apt
+packages, and optional healthchecks.
+
+### Python / FastHTML
+
+``` python
+from dockr.apps import python_app, fasthtml_app
+
+# Generic single-stage Python app
+print(python_app(port=8080, cmd=['uvicorn', 'main:app', '--host', '0.0.0.0']))
+```
+
+``` python
+# FastHTML shortcut: uv + port 5001 + sensible defaults
+print(fasthtml_app(port=5001, pkgs=['rclone'], volumes=['/app/data']))
+```
+
+### FastAPI + React (two-stage)
+
+``` python
+from dockr.apps import fastapi_react
+
+# Stage 1: Node builds the frontend; Stage 2: Python serves the API
+print(fastapi_react(port=8000, frontend_dir='frontend'))
+```
+
+### Go and Rust (two-stage → distroless)
+
+``` python
+from dockr.apps import go_app, rust_app
+
+print(go_app(port=8080, go_version='1.22'))
+print()
+print(rust_app(port=8080, binary='myapp'))
+```
+
+### Cache mounts for faster rebuilds
+
+`run_mount()` adds `RUN --mount=type=cache,...` to any instruction,
+keeping pip/uv/cargo/go caches across builds:
+
+``` python
+df = (Dockerfile().from_('python:3.12-slim')
+    .run_mount('uv sync --frozen --no-dev', target='/root/.cache/uv')
+    .run_mount('go mod download',           target='/go/pkg/mod'))
+```
+
+## VPS Provisioning
+
+The `vps` module covers the full lifecycle from a blank cloud server to
+a running Compose stack: cloud-init generation, Hetzner provisioning,
+and SSH-based deployment. No cloud SDK required beyond the `hcloud` CLI
+and `ssh`/`rsync`.
+
+### vps_init — cloud-init YAML
+
+``` python
+from dockr.vps import vps_init
+
+# Full bootstrap: UFW, deploy user, Docker, Cloudflare tunnel
+yaml = vps_init(
+    'prod-01',
+    pub_keys='ssh-rsa AAAA...',
+    docker=True,
+    packages=['git', 'htop'],
+)
+print(yaml[:500])
+```
+
+### Hetzner provisioning
+
+[`create()`](https://Karthik777.github.io/dockr/vps.html#create) wraps
+`hcloud server create`. Pass the cloud-init YAML string directly — it
+handles the temp-file lifecycle automatically.
+
+``` python
+from dockr.vps import create, servers, server_ip, delete
+
+ip = create(
+    'prod-01',
+    image='ubuntu-24.04',
+    server_type='cx22',
+    location='nbg1',
+    cloud_init=yaml,
+    ssh_keys=['my-laptop'],
+)
+print(servers())   # [{'name': 'prod-01', 'ip': '...', 'status': 'running'}]
+```
+
+Requires `hcloud` CLI and `HCLOUD_TOKEN` in env.
+
+### deploy — sync and start
+
+[`deploy()`](https://Karthik777.github.io/dockr/vps.html#deploy) accepts
+a [`Compose`](https://Karthik777.github.io/dockr/compose.html#compose)
+object or a raw YAML string, rsyncs it to the server, and runs
+`docker compose up -d`:
+
+``` python
+from dockr.vps import deploy
+
+deploy(dc, ip, user='deploy', key='~/.ssh/id_ed25519', path='/srv/myapp')
+# 1. mkdir -p /srv/myapp  (via SSH)
+# 2. rsync docker-compose.yml → prod-01:/srv/myapp/
+# 3. docker compose up -d  (via SSH)
+```
+
+For one-off commands use
+[`run_ssh()`](https://Karthik777.github.io/dockr/vps.html#run_ssh):
+
+``` python
+from dockr.vps import run_ssh
+
+print(run_ssh(ip, 'docker ps', user='deploy', key='~/.ssh/id_ed25519'))
+```
+
 ## End-to-End: Deploy a Python App
 
 Here is the complete workflow for deploying a Python webapp with Caddy
@@ -436,6 +555,26 @@ ip = vm_ip('test-vm')
 dns_record('example.com', 'myapp', ip)  # point DNS at the VM
 
 delete('test-vm')  # clean up
+```
+
+**Step 5: provision and deploy to a real server** (requires `hcloud`
+CLI + `HCLOUD_TOKEN`)
+
+``` python
+from dockr.vps import vps_init, create, deploy
+from dockr.cloudflare import dns_record
+
+# Bootstrap a fresh Hetzner server
+yaml = vps_init('prod-01', pub_keys=open('~/.ssh/id_ed25519.pub').read(),
+                docker=True)
+ip = create('prod-01', server_type='cx22', location='nbg1',
+            cloud_init=yaml, ssh_keys=['my-laptop'])
+
+# Point DNS at it
+dns_record('example.com', 'myapp', ip, proxied=True)
+
+# Sync Compose stack and start
+deploy(dc, ip, key='~/.ssh/id_ed25519', path='/srv/myapp')
 ```
 
 ## Podman Support

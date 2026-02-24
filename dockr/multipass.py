@@ -9,27 +9,16 @@ __all__ = ['mp', 'callmultipass', 'Multipass', 'cloud_init_yaml', 'launch', 'vms
 # %% ../nbs/03_multipass.ipynb #59dd5cbd
 import os, json, subprocess, tempfile
 from pathlib import Path
-from functools import partial
-from fastcore.all import concat
+from .core import _CLI
 
 # %% ../nbs/03_multipass.ipynb #2e201deb
 def callmultipass(*args):
     'Run a multipass CLI command, return stdout.'
     return subprocess.run(('multipass',) + args, capture_output=True, text=True, check=True).stdout.strip()
 
-class Multipass:
+class Multipass(_CLI):
     'Wrap multipass CLI: __getattr__ dispatches subcommands, kwargs become flags'
-    def __call__(self, cmd, *args, **kwargs):
-        fargs = list(args)
-        fargs += concat([f'-{k}', str(v)] for k,v in kwargs.items() if len(k)==1 and v not in (True, False, None))
-        fargs += [f'-{k}' for k,v in kwargs.items() if len(k)==1 and v is True]
-        fargs += [f'--{k.rstrip("_").replace("_","-")}={v}' for k,v in kwargs.items() if len(k)>1 and v not in (True, False, None)]
-        fargs += [f'--{k.rstrip("_").replace("_","-")}' for k,v in kwargs.items() if len(k)>1 and v is True]
-        return callmultipass(cmd, *fargs)
-
-    def __getattr__(self, nm):
-        if nm.startswith('_'): raise AttributeError(nm)
-        return partial(self, nm.replace('_', '-'))
+    def _run(self, cmd, *args): return callmultipass(cmd, *args)
 
 mp = Multipass()
 

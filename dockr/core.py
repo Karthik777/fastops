@@ -6,10 +6,21 @@
 __all__ = ['dk', 'Dockerfile', 'calldocker', 'Docker', 'test', 'run', 'containers', 'images', 'stop', 'logs', 'rm', 'rmi']
 
 # %% ../nbs/00_core.ipynb #c7b52454175ab4d4
-import os, re, json, subprocess
+import re, json, subprocess
 from pathlib import Path
 from functools import partial
-from fastcore.all import listify, joins, is_listy, L, patch, true, concat
+from fastcore.all import listify, joins, is_listy, L, patch, concat
+
+# %% ../nbs/00_core.ipynb #t1qbqvj053
+def _build_flags(*a, **kw):
+    'Build CLI flag list: single-char kwargs → -k [v], multi-char → --key[=v]'
+    k2f = lambda k: f'--{k.rstrip("_").replace("_","-")}'
+    flags = list(a)
+    flags += concat([f'-{k}', str(v)] for k,v in kw.items() if len(k) == 1 and v not in (True, False, None))
+    flags += [f'-{k}' for k,v in kw.items() if len(k) == 1 and v is True]
+    flags += [f'{k2f(k)}={v}' for k,v in kw.items() if len(k) > 1 and v not in (True, False, None)]
+    flags += [k2f(k) for k,v in kw.items() if len(k) > 1 and v is True]
+    return flags
 
 # %% ../nbs/00_core.ipynb #112779e5025a332d
 def _instr(kw, v): return f'{kw} {v}'
@@ -17,7 +28,7 @@ def _instr(kw, v): return f'{kw} {v}'
 # %% ../nbs/00_core.ipynb #5d14b9bf7a117b3c
 def _from(image:str, tag:str=None, as_:str=None) -> str:
     'From instruction -- base image with optional tag and alias'
-    return _instr('FROM', '%s%s%s' % (image, ':%s' % tag if tag else '', ' AS %s' % as_ if as_ else ''))
+    return _instr('FROM', f'{image}{f":{tag}" if tag else ""}{f" AS {as_}" if as_ else ""}')
 
 # %% ../nbs/00_core.ipynb #5749a2a4ac1b4fa9
 def _run(cmd: list | str):
@@ -38,7 +49,7 @@ def _cmd(cmd: list | str):
 # %% ../nbs/00_core.ipynb #f3e6c641b8c5eb53
 def _copy(src:str, dst:str, from_:str=None, link=False):
     'COPY instruction -- copy files into image'
-    flags = f'{"--link " if link else ""}{"--from=%s " % from_ if from_ else ""}'
+    flags = f'{"--link " if link else ""}{"--from=" + from_ + " " if from_ else ""}'
     return _instr('COPY', f'{flags}{src} {dst}')
 
 # %% ../nbs/00_core.ipynb #c9ae4a4f4f2e1d4e
@@ -54,7 +65,7 @@ def _workdir(path):
 # %% ../nbs/00_core.ipynb #7ac5673990f345da
 def _env(k, v=None):
     'ENV instruction -- set environment variable'
-    return _instr('ENV', f'{k}{'=%s' % v if v else ''}')
+    return _instr('ENV', f'{k}{"=" + str(v) if v else ""}')
 
 # %% ../nbs/00_core.ipynb #83047e4ca88feace
 def _expose(port):
@@ -69,7 +80,7 @@ def _entrypoint(cmd):
 # %% ../nbs/00_core.ipynb #e50bfa8ecc6627f7
 def _arg(nm, def_=None):
     'ARG instruction -- build-time variable'
-    return _instr('ARG', f'{nm}{'=%s' % def_ if def_ else ''}')
+    return _instr('ARG', f'{nm}{"=" + str(def_) if def_ else ""}')
 
 # %% ../nbs/00_core.ipynb #c09c6ddb6ffca82a
 def _label(**kw):
@@ -94,10 +105,10 @@ def _shell(cmd):
 # %% ../nbs/00_core.ipynb #be7c4e02a7981ea
 def _healthcheck(cmd, i=None, t=None, r=None, sp=None):
     'HEALTHCHECK instruction -- container health check'
-    o2s = lambda k, v: f'--{k}={v}' if v else ''
-    o = ' '.join(filter(None, [o2s('interval',i), o2s('timeout',t), o2s('retries', r), o2s('start-period', sp)]))
+    kw = {'interval': i, 'timeout': t, 'retries': r, 'start-period': sp}
+    opts = joins(' ', [f'--{k}={v}' for k,v in kw.items() if v])
     c = json.dumps(cmd) if is_listy(cmd) else cmd
-    return _instr('HEALTHCHECK', f'{o} CMD {c}'.strip())
+    return _instr('HEALTHCHECK', f'{opts} CMD {c}'.strip())
 
 # %% ../nbs/00_core.ipynb #e824ecd74f59baa2
 def _stop_sig_(sig):
@@ -148,9 +159,10 @@ class Dockerfile(L):
         return self._add(f'RUN --mount={opts} {cmd}')
     def __call__(self, kw, *args, **kwargs):
         'Build a generic Dockerfile instruction: kw ARG1 ARG2 --flag=val --bool-flag'
-        flags = [f'--{k.rstrip("_").replace("_","-")}={v}' for k,v in kwargs.items() if v not in (True, False, None)]
-        flags += [f'--{k.rstrip("_").replace("_","-")}' for k,v in kwargs.items() if v is True]
-        return self._add(f'{kw} {" ".join([*flags, *[str(a) for a in args]])}')
+        k2f = lambda k: f'--{k.rstrip("_").replace("_","-")}'
+        flags = [f'{k2f(k)}={v}' for k,v in kwargs.items() if v not in (True, False, None)]
+        flags += [k2f(k) for k,v in kwargs.items() if v is True]
+        return self._add(f'{kw} {" ".join([*flags, *map(str, args)])}')
     def __getattr__(self, nm):
         'Dispatch unknown instruction names: df.some_instr(arg) → SOME-INSTR arg'
         if nm.startswith('_'): raise AttributeError(nm)
@@ -160,6 +172,15 @@ class Dockerfile(L):
     def save(self, path:Path=Path('Dockerfile')):
         Path(path).mk_write(str(self))
         return path
+
+# %% ../nbs/00_core.ipynb #whnvww0xy2b
+class _CLI:
+    'Base: __call__ builds flags → _run(), __getattr__ dispatches subcommands'
+    def __call__(self, cmd, *args, **kwargs): return self._run(cmd, *_build_flags(*args, **kwargs))
+    def _run(self, cmd, *args): raise NotImplementedError
+    def __getattr__(self, nm):
+        if nm.startswith('_'): raise AttributeError(nm)
+        return partial(self, nm.replace('_', '-'))
 
 # %% ../nbs/00_core.ipynb #4abe618740a1c539
 def _clean_cfg():
@@ -181,21 +202,10 @@ def calldocker(*args, no_creds=False):
     pre = ('--config', _clean_cfg()) if no_creds and rt == 'docker' else ()
     return subprocess.run((rt,) + pre + args, capture_output=True, text=True, check=True).stdout.strip()
 
-class Docker:
+class Docker(_CLI):
     'Wrap docker CLI: __getattr__ dispatches subcommands, kwargs become flags'
     def __init__(self, no_creds=False): self.no_creds = no_creds
-
-    def __call__(self, cmd, *args, **kwargs):
-        fargs = list(args)
-        fargs += concat([f'-{k}', str(v)] for k,v in kwargs.items() if len(k)==1 and v not in (True, False, None))
-        fargs += [f'-{k}' for k,v in kwargs.items() if len(k)==1 and v is True]
-        fargs += [f'--{k.rstrip("_").replace("_","-")}={v}' for k,v in kwargs.items() if len(k)>1 and v not in (True, False, None)]
-        fargs += [f'--{k.rstrip("_").replace("_","-")}' for k,v in kwargs.items() if len(k)>1 and v is True]
-        return calldocker(cmd, *fargs, no_creds=self.no_creds)
-
-    def __getattr__(self, nm):
-        if nm.startswith('_'): raise AttributeError(nm)
-        return partial(self, nm.replace('_', '-'))
+    def _run(self, cmd, *args): return calldocker(cmd, *args, no_creds=self.no_creds)
 
 dk = Docker()
 
