@@ -1,0 +1,11 @@
+website:
+  sidebar:
+    contents:
+      - index.ipynb
+      - 00_core.ipynb
+      - 01_compose.ipynb
+      - 02_caddy.ipynb
+      - 03_multipass.ipynb
+      - 04_cloudflare.ipynb
+      - 05_apps.ipynb
+      - 06_vps.ipynb
