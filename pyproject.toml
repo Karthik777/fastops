@@ -3,14 +3,14 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "dockr"
+name = "fastops"
 version = "0.0.1"
-description = "a simple wrapper around docker engines"
+description = "End-to-end developer operations toolkit: Docker, VPS, DNS, Caddy, and CI/CD from Python"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
-authors = [{name = "71293", email = "karthikrajgopal.laxminaarayanan@bain.com"}]
-keywords = ['nbdev', 'docker']
+authors = [{name = "71293", email = "karthik.rajgopal@hotmail.com"}]
+keywords = ['nbdev', 'docker', 'devops', 'vps', 'caddy', 'cloudflare']
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
@@ -24,11 +24,11 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/Karthik777/dockr"
-Documentation = "https://Karthik777.github.io/dockr/"
+Repository = "https://github.com/Karthik777/fastops"
+Documentation = "https://Karthik777.github.io/fastops/"
 
 [project.entry-points.nbdev]
-dockr = "dockr._modidx:d"
+fastops = "fastops._modidx:d"
 
 [dependency-groups]
 dev = [
@@ -37,6 +37,6 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["dockr"]
+packages = ["fastops"]
 
 [tool.nbdev]

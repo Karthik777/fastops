@@ -2,8 +2,8 @@ project:
   output-dir: _docs
 
 website:
-  title: "dockr"
-  site-url: "https://Karthik777.github.io/dockr"
-  description: "a simple wrapper around docker engines"
+  title: "fastops"
+  site-url: "https://Karthik777.github.io/fastops"
+  description: "End-to-end developer operations toolkit: Docker, VPS, DNS, Caddy, and CI/CD from Python"
   repo-branch: main
-  repo-url: "https://github.com/Karthik777/dockr"
+  repo-url: "https://github.com/Karthik777/fastops"
