@@ -18,7 +18,7 @@ is an immutable, fluent builder — every method returns a new instance,
 so you can safely branch, compose, or pass it to functions.
 
 ``` python
-from fastops.core import Dockerfile
+from fastops import Dockerfile
 
 df = (Dockerfile()
     .from_('python', '3.12-slim')
@@ -82,7 +82,7 @@ These helpers require a running Docker daemon. They wrap `docker build`,
 `docker run`, `docker ps`, etc. via subprocess.
 
 ``` python
-from fastops.core import Dockerfile, run, test, containers, images, stop, logs, rm, rmi
+from fastops import Dockerfile, run, test, containers, images, stop, logs, rm, rmi
 
 df = Dockerfile().from_('python', '3.12-slim').cmd(['python', '-c', 'print("hi")'])
 
@@ -104,7 +104,7 @@ singleton) dispatches any subcommand. kwargs become flags using the same
 convention: single-char `k=v` → `-k v`, multi-char `key=v` → `--key=v`.
 
 ``` python
-from fastops.core import dk
+from fastops import dk
 
 try:
     print(dk.version())
@@ -125,7 +125,7 @@ is a fluent builder for `docker-compose.yml`. Chain `.svc()`,
 and start.
 
 ``` python
-from fastops.compose import Compose
+from fastops import Compose
 
 dc = (Compose()
     .svc('db',
@@ -151,7 +151,7 @@ A one-liner for the most common Dockerfile pattern: copy requirements,
 pip install, copy source, expose port, run `main.py`.
 
 ``` python
-from fastops.compose import appfile
+from fastops import appfile
 
 print(appfile(port=8080, image='python:3.12-slim'))
 ```
@@ -170,7 +170,7 @@ Four topologies are supported, from simplest to most secure.
 ### Plain Caddy — auto-TLS, ports 80 and 443
 
 ``` python
-from fastops.caddy import caddyfile, caddy
+from fastops import caddyfile, caddy
 import tempfile
 
 # What the Caddyfile looks like:
@@ -203,7 +203,7 @@ With `cloudflared=True`, Caddy listens on plain HTTP and cloudflared
 tunnels traffic in. No ports need to be open on the host at all.
 
 ``` python
-from fastops.caddy import cloudflared_svc
+from fastops import cloudflared_svc
 
 with tempfile.TemporaryDirectory() as tmp:
     dc = (Compose()
@@ -224,7 +224,7 @@ The image is selected automatically based on the combination of
 and `dns`.
 
 ``` python
-from fastops.caddy import crowdsec
+from fastops import crowdsec
 
 with tempfile.TemporaryDirectory() as tmp:
     dc = (Compose()
@@ -259,7 +259,7 @@ generates an nginx site-conf and returns service kwargs for
 [`Compose.svc()`](https://Karthik777.github.io/fastops/compose.html#compose.svc).
 
 ``` python
-from fastops.compose import swag, swag_conf
+from fastops import swag, swag_conf
 
 # nginx site-conf for proxying to app:8080
 print(swag_conf('myapp.example.com', port=8080))
@@ -285,7 +285,7 @@ scripts locally — no cloud account needed.
 ### cloud_init_yaml — VM bootstrap config
 
 ``` python
-from fastops.multipass import cloud_init_yaml
+from fastops import cloud_init_yaml
 
 # Default: Docker pre-installed
 print(cloud_init_yaml(docker=True, packages=['htop', 'tree']))
@@ -302,7 +302,7 @@ It covers the most common use case: spin up a clean Ubuntu VM with
 Docker ready to go.
 
 ``` python
-from fastops.multipass import launch_docker_vm, vm_ip, exec_, transfer, delete, vms
+from fastops import launch_docker_vm, vm_ip, exec_, transfer, delete, vms
 
 # Spin up an Ubuntu VM with Docker pre-installed (takes ~60s first run)
 vm = launch_docker_vm('test-vm', cpus=2, memory='2G')
@@ -325,7 +325,7 @@ and cleans up automatically.
 For raw CLI access use the `mp` singleton (same pattern as `dk`):
 
 ``` python
-from fastops.multipass import mp
+from fastops import mp
 mp.info("test-vm")            # → multipass info test-vm
 mp.snapshot("test-vm", name="before-deploy")
 ```
@@ -350,7 +350,7 @@ up the zone, deletes any existing record with the same name and type,
 then creates the new one.
 
 ``` python
-from fastops.cloudflare import dns_record, CF
+from fastops import dns_record, CF
 
 # Point myapp.example.com at a server IP
 record = dns_record('example.com', 'myapp', '1.2.3.4', proxied=True)
@@ -378,7 +378,7 @@ packages, and optional healthchecks.
 ### Python / FastHTML
 
 ``` python
-from fastops.apps import python_app, fasthtml_app
+from fastops import python_app, fasthtml_app
 
 # Generic single-stage Python app
 print(python_app(port=8080, cmd=['uvicorn', 'main:app', '--host', '0.0.0.0']))
@@ -392,7 +392,7 @@ print(fasthtml_app(port=5001, pkgs=['rclone'], volumes=['/app/data']))
 ### FastAPI + React (two-stage)
 
 ``` python
-from fastops.apps import fastapi_react
+from fastops import fastapi_react
 
 # Stage 1: Node builds the frontend; Stage 2: Python serves the API
 print(fastapi_react(port=8000, frontend_dir='frontend'))
@@ -401,7 +401,7 @@ print(fastapi_react(port=8000, frontend_dir='frontend'))
 ### Go and Rust (two-stage → distroless)
 
 ``` python
-from fastops.apps import go_app, rust_app
+from fastops import go_app, rust_app
 
 print(go_app(port=8080, go_version='1.22'))
 print()
@@ -429,7 +429,7 @@ and `ssh`/`rsync`.
 ### vps_init — cloud-init YAML
 
 ``` python
-from fastops.vps import vps_init
+from fastops import vps_init
 
 # Full bootstrap: UFW, deploy user, Docker, Cloudflare tunnel
 yaml = vps_init(
@@ -448,7 +448,7 @@ print(yaml[:500])
 handles the temp-file lifecycle automatically.
 
 ``` python
-from fastops.vps import create, servers, server_ip, delete
+from fastops import create, servers, server_ip, delete
 
 ip = create(
     'prod-01',
@@ -472,7 +472,7 @@ object or a raw YAML string, rsyncs it to the server, and runs
 `docker compose up -d`:
 
 ``` python
-from fastops.vps import deploy
+from fastops import deploy
 
 deploy(dc, ip, user='deploy', key='~/.ssh/id_ed25519', path='/srv/myapp')
 # 1. mkdir -p /srv/myapp  (via SSH)
@@ -484,7 +484,7 @@ For one-off commands use
 [`run_ssh()`](https://Karthik777.github.io/fastops/vps.html#run_ssh):
 
 ``` python
-from fastops.vps import run_ssh
+from fastops import run_ssh
 
 print(run_ssh(ip, 'docker ps', user='deploy', key='~/.ssh/id_ed25519'))
 ```
@@ -498,9 +498,9 @@ file.
 **Step 1: generate the configs** (pure Python, no daemon needed)
 
 ``` python
-from fastops.core import Dockerfile
-from fastops.compose import Compose, appfile
-from fastops.caddy import caddy, cloudflared_svc, crowdsec
+from fastops import Dockerfile
+from fastops import Compose, appfile
+from fastops import caddy, cloudflared_svc, crowdsec
 import tempfile
 
 DOMAIN = 'myapp.example.com'
@@ -538,7 +538,7 @@ dc.up()  # writes file + runs docker compose up -d
 **Step 3: wire up DNS** (requires `CLOUDFLARE_API_TOKEN`)
 
 ``` python
-from fastops.cloudflare import dns_record
+from fastops import dns_record
 
 dns_record('example.com', 'myapp', '1.2.3.4', proxied=True)
 ```
@@ -546,8 +546,8 @@ dns_record('example.com', 'myapp', '1.2.3.4', proxied=True)
 **Step 4: test locally first** (requires Multipass)
 
 ``` python
-from fastops.multipass import launch_docker_vm, vm_ip, exec_, transfer, delete
-from fastops.cloudflare import dns_record
+from fastops import launch_docker_vm, vm_ip, exec_, transfer, delete
+from fastops import dns_record
 
 vm = launch_docker_vm('test-vm')
 transfer('./docker-compose.yml', 'test-vm:/home/ubuntu/')
@@ -563,8 +563,8 @@ delete('test-vm')  # clean up
 CLI + `HCLOUD_TOKEN`)
 
 ``` python
-from fastops.vps import vps_init, create, deploy
-from fastops.cloudflare import dns_record
+from fastops import vps_init, create, deploy
+from fastops import dns_record
 
 # Bootstrap a fresh Hetzner server
 yaml = vps_init('prod-01', pub_keys=open('~/.ssh/id_ed25519.pub').read(),

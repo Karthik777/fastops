@@ -9,8 +9,9 @@ __all__ = ['hc', 'vps_init', 'callhcloud', 'Hcloud', 'hcloud_auth', 'create', 's
 # %% ../nbs/06_vps.ipynb #8795cffa
 import os, json, subprocess, tempfile
 from pathlib import Path
+from fastcore.all import L
 from fastcloudinit.core import cloud_init_config
-from .core import _CLI
+from .core import Cli
 from .compose import Compose
 
 # %% ../nbs/06_vps.ipynb #d9b26e5a
@@ -42,7 +43,7 @@ def callhcloud(*args):
     'Run hcloud CLI command, return stdout.'
     return subprocess.run(('hcloud',) + args, capture_output=True, text=True, check=True).stdout.strip()
 
-class Hcloud(_CLI):
+class Hcloud(Cli):
     'Wrap hcloud CLI: __getattr__ dispatches subcommands, kwargs become flags'
     def _run(self, cmd, *args): return callhcloud(cmd, *args)
 
@@ -96,9 +97,8 @@ def create(name, image='ubuntu-24.04', server_type='cx22', location=None,
 
 def servers():
     'List Hetzner servers as [{name, ip, status}]'
-    data = json.loads(callhcloud('server', 'list', '-o', 'json'))
-    return [{'name': s['name'], 'ip': s['public_net']['ipv4']['ip'],
-             'status': s['status']} for s in data]
+    return L(json.loads(callhcloud('server', 'list', '-o', 'json'))).map(
+        lambda s: {'name': s['name'], 'ip': s['public_net']['ipv4']['ip'], 'status': s['status']})
 
 def server_ip(name) -> str:
     'Get public IPv4 of a Hetzner server'

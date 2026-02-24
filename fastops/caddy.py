@@ -8,7 +8,6 @@ __all__ = ['caddyfile', 'caddy', 'cloudflared_svc', 'crowdsec']
 # %% ../nbs/02_caddy.ipynb #e67b555b
 from pathlib import Path
 from fastcore.all import listify
-from .compose import Compose, service
 
 # %% ../nbs/02_caddy.ipynb #d1a11e12
 def caddyfile(domain, app='app', port=5001, *,

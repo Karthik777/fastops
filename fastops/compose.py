@@ -5,13 +5,12 @@
 # %% auto #0
 __all__ = ['SWAG_MODS', 'dict2str', 'service', 'DockerCompose', 'Compose', 'swag_conf', 'swag', 'appfile']
 
-# %% ../nbs/01_compose.ipynb #5c7c6242
+# %% ../nbs/01_compose.ipynb #5064893f7df72835
 import yaml
-from functools import partial
 from fastcore.all import Path, L, merge, listify, filter_values
-from .core import Dockerfile, calldocker, _CLI, _build_flags
+from .core import calldocker, Cli, Dockerfile
 
-# %% ../nbs/01_compose.ipynb #59e66642
+# %% ../nbs/01_compose.ipynb #e5c90747b068309e
 def dict2str(d:dict, sep=':'): return [f'{k}{sep}{v}' for k,v in d.items()] if isinstance(d, dict) else d
 def service(image=None, build=None, ports=None, env=None, volumes=None, depends_on=None, command=None, **kw):
     'Create a docker-compose service dict'
@@ -20,13 +19,13 @@ def service(image=None, build=None, ports=None, env=None, volumes=None, depends_
         ports=dict2str(ports), build=build, environment=dict2str(env,'='),
         volumes=dict2str(volumes)), lambda v: v is not None) | kw
 
-# %% ../nbs/01_compose.ipynb #99vr212jmdr
-class DockerCompose(_CLI):
+# %% ../nbs/01_compose.ipynb #fa9958d92684c2dd
+class DockerCompose(Cli):
     'Wrap docker compose CLI: __getattr__ dispatches subcommands, kwargs become flags'
     def __init__(self, path='docker-compose.yml'): self.path = path
     def _run(self, cmd, *args): return calldocker('compose', '-f', self.path, cmd, *args)
 
-# %% ../nbs/01_compose.ipynb #37a115b0
+# %% ../nbs/01_compose.ipynb #e80c10673a79ca6e
 class Compose(L):
     'Fluent builder for docker-compose.yml files'
     def _add(self, item): return self._new(self.items + [item])
@@ -64,7 +63,7 @@ class Compose(L):
         'Run docker compose down'
         self.save(path); return DockerCompose(path).down(**kw)
 
-# %% ../nbs/01_compose.ipynb #654a46a9e3e44be8
+# %% ../nbs/01_compose.ipynb #756ce98aa0018266
 SWAG_MODS = {
     'auto-proxy':         'linuxserver/mods:swag-auto-proxy',
     'docker':             'linuxserver/mods:universal-docker',

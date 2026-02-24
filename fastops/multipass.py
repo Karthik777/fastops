@@ -9,14 +9,15 @@ __all__ = ['mp', 'callmultipass', 'Multipass', 'cloud_init_yaml', 'launch', 'vms
 # %% ../nbs/03_multipass.ipynb #59dd5cbd
 import os, json, subprocess, tempfile
 from pathlib import Path
-from .core import _CLI
+from fastcore.all import L
+from .core import Cli
 
 # %% ../nbs/03_multipass.ipynb #2e201deb
 def callmultipass(*args):
     'Run a multipass CLI command, return stdout.'
     return subprocess.run(('multipass',) + args, capture_output=True, text=True, check=True).stdout.strip()
 
-class Multipass(_CLI):
+class Multipass(Cli):
     'Wrap multipass CLI: __getattr__ dispatches subcommands, kwargs become flags'
     def _run(self, cmd, *args): return callmultipass(cmd, *args)
 
@@ -68,10 +69,9 @@ def launch(name, image='22.04', cpus=1, memory='1G', disk='10G', cloud_init=None
 # %% ../nbs/03_multipass.ipynb #eebed563
 def vms(running=False) -> list:
     'List Multipass VM names. running=True filters to Running state.'
-    data = json.loads(callmultipass('list', '--format', 'json'))
-    lst = data.get('list', [])
-    if running: lst = [v for v in lst if v.get('state') == 'Running']
-    return [v['name'] for v in lst]
+    lst = L(json.loads(callmultipass('list', '--format', 'json')).get('list', []))
+    if running: lst = lst.filter(lambda v: v.get('state') == 'Running')
+    return list(lst.itemgot('name'))
 
 def vm_ip(name) -> str:
     'Get the IPv4 address of a Multipass VM.'
