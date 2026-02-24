@@ -8,34 +8,23 @@ __all__ = ['SWAG_MODS', 'dict2str', 'service', 'DockerCompose', 'Compose', 'swag
 # %% ../nbs/01_compose.ipynb #5c7c6242
 import yaml
 from functools import partial
-from fastcore.all import Path, L, merge, listify, concat
-from .core import Dockerfile, calldocker
+from fastcore.all import Path, L, merge, listify, filter_values
+from .core import Dockerfile, calldocker, _CLI, _build_flags
 
 # %% ../nbs/01_compose.ipynb #59e66642
-def dict2str(d:dict, sep=':'): return ['%s%s%s'%(k,sep,v) for k, v in d.items()] if isinstance(d, dict) else d
+def dict2str(d:dict, sep=':'): return [f'{k}{sep}{v}' for k,v in d.items()] if isinstance(d, dict) else d
 def service(image=None, build=None, ports=None, env=None, volumes=None, depends_on=None, command=None, **kw):
     'Create a docker-compose service dict'
     if isinstance(build, Dockerfile): build = '.'
-    return {k: v for k, v in dict(image=image, command=command, depends_on=depends_on, ports=dict2str(ports),
-        build=build, environment=dict2str(env,'='),
-        volumes=dict2str(volumes)).items() if v is not None} | kw
+    return filter_values(dict(image=image, command=command, depends_on=depends_on,
+        ports=dict2str(ports), build=build, environment=dict2str(env,'='),
+        volumes=dict2str(volumes)), lambda v: v is not None) | kw
 
 # %% ../nbs/01_compose.ipynb #99vr212jmdr
-class DockerCompose:
+class DockerCompose(_CLI):
     'Wrap docker compose CLI: __getattr__ dispatches subcommands, kwargs become flags'
     def __init__(self, path='docker-compose.yml'): self.path = path
-
-    def __call__(self, cmd, *args, **kwargs):
-        fargs = list(args)
-        fargs += concat([f'-{k}', str(v)] for k,v in kwargs.items() if len(k)==1 and v not in (True, False, None))
-        fargs += [f'-{k}' for k,v in kwargs.items() if len(k)==1 and v is True]
-        fargs += [f'--{k.rstrip("_").replace("_","-")}={v}' for k,v in kwargs.items() if len(k)>1 and v not in (True, False, None)]
-        fargs += [f'--{k.rstrip("_").replace("_","-")}' for k,v in kwargs.items() if len(k)>1 and v is True]
-        return calldocker('compose', '-f', self.path, cmd, *fargs)
-
-    def __getattr__(self, nm):
-        if nm.startswith('_'): raise AttributeError(nm)
-        return partial(self, nm.replace('_', '-'))
+    def _run(self, cmd, *args): return calldocker('compose', '-f', self.path, cmd, *args)
 
 # %% ../nbs/01_compose.ipynb #37a115b0
 class Compose(L):
@@ -117,5 +106,5 @@ def swag(domain, app='app', port=None, conf_path='proxy.conf',
 def appfile(port=5001, volume='/app/data', image='python:3.12-slim'):
     'Standard Python webapp Dockerfile'
     df = Dockerfile().from_(image).workdir('/app').copy('requirements.txt', '.').run('pip install --no-cache-dir -r requirements.txt').copy('.', '.')
-    if volume: df = df.volume(volume)
+    if volume: df = df.run(f'mkdir -p {volume}')
     return df.expose(port).cmd(['python', 'main.py'])

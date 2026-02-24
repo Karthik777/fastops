@@ -19,6 +19,8 @@ dependencies = [
     "fastcore>=1.12.14",
     "pyyaml>=6.0",
     "notebook",
+    "cloudflare>=4.3.1",
+    "fastcloudinit>=0.0.5",
 ]
 
 [project.urls]
