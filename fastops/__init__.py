@@ -14,4 +14,5 @@ from .resources import *
 from .connect import *
 from .teardown import *
 from .infra import *
+from .ci import *
 from .ship import *
