@@ -27,6 +27,12 @@ dependencies = [
 Repository = "https://github.com/Karthik777/fastops"
 Documentation = "https://Karthik777.github.io/fastops/"
 
+[project.optional-dependencies]
+infra = ["pyinfra>=3.0"]
+all = [
+    "pyinfra>=3.0",
+]
+
 [project.entry-points.nbdev]
 fastops = "fastops._modidx:d"
 
