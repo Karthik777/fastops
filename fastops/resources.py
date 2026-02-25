@@ -8,6 +8,11 @@ import subprocess
 from pathlib import Path
 
 
+DEFAULTS = {
+    'db':    lambda: database(),
+    'cache': lambda: cache(),
+}
+
 def database(name='db', engine='postgres', provider='docker', **kw):
     'Provision a database: postgres, mysql, or mongo'
     password = kw.get('password', os.environ.get('DB_PASSWORD', 'secret'))
@@ -27,7 +32,13 @@ def database(name='db', engine='postgres', provider='docker', **kw):
                 },
                 'ports': {'5432': '5432'},
                 'volumes': {'pgdata': '/var/lib/postgresql/data'},
-                'restart': 'unless-stopped'
+                'restart': 'unless-stopped',
+                'healthcheck': {
+                    'test': ['CMD-SHELL', 'pg_isready -U postgres'],
+                    'interval': '10s',
+                    'timeout': '5s',
+                    'retries': 5
+                }
             }
             return (env_dict, svc)
         
@@ -45,7 +56,13 @@ def database(name='db', engine='postgres', provider='docker', **kw):
                 },
                 'ports': {'3306': '3306'},
                 'volumes': {'mysqldata': '/var/lib/mysql'},
-                'restart': 'unless-stopped'
+                'restart': 'unless-stopped',
+                'healthcheck': {
+                    'test': ['CMD', 'mysqladmin', 'ping', '-h', 'localhost'],
+                    'interval': '10s',
+                    'timeout': '5s',
+                    'retries': 5
+                }
             }
             return (env_dict, svc)
         
@@ -63,7 +80,13 @@ def database(name='db', engine='postgres', provider='docker', **kw):
                 },
                 'ports': {'27017': '27017'},
                 'volumes': {'mongodata': '/data/db'},
-                'restart': 'unless-stopped'
+                'restart': 'unless-stopped',
+                'healthcheck': {
+                    'test': ['CMD', 'mongosh', '--eval', 'db.adminCommand("ping")'],
+                    'interval': '10s',
+                    'timeout': '5s',
+                    'retries': 5
+                }
             }
             return (env_dict, svc)
     
@@ -133,7 +156,13 @@ def cache(name='redis', provider='docker', **kw):
             'command': 'redis-server --appendonly yes',
             'ports': {'6379': '6379'},
             'volumes': {'redis-data': '/data'},
-            'restart': 'unless-stopped'
+            'restart': 'unless-stopped',
+            'healthcheck': {
+                'test': ['CMD', 'redis-cli', 'ping'],
+                'interval': '10s',
+                'timeout': '5s',
+                'retries': 5
+            }
         }
         return (env_dict, svc)
     
@@ -201,7 +230,13 @@ def queue(name='tasks', provider='docker', **kw):
             },
             'ports': {'5672': '5672', '15672': '15672'},
             'volumes': {'rabbitmq-data': '/var/lib/rabbitmq'},
-            'restart': 'unless-stopped'
+            'restart': 'unless-stopped',
+            'healthcheck': {
+                'test': ['CMD', 'rabbitmq-diagnostics', '-q', 'ping'],
+                'interval': '10s',
+                'timeout': '5s',
+                'retries': 5
+            }
         }
         return (env_dict, svc)
     
@@ -272,7 +307,7 @@ def queue(name='tasks', provider='docker', **kw):
     return ({}, None)
 
 
-def bucket(name, provider='docker', **kw):
+def bucket(name='data', provider='docker', **kw):
     'Provision object storage'
     if provider == 'docker':
         access_key = kw.get('access_key', 'minioadmin')
@@ -293,7 +328,13 @@ def bucket(name, provider='docker', **kw):
             },
             'ports': {'9000': '9000', '9001': '9001'},
             'volumes': {'minio-data': '/data'},
-            'restart': 'unless-stopped'
+            'restart': 'unless-stopped',
+            'healthcheck': {
+                'test': ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live'],
+                'interval': '10s',
+                'timeout': '5s',
+                'retries': 5
+            }
         }
         return (env_dict, svc)
     
@@ -383,9 +424,11 @@ def bucket(name, provider='docker', **kw):
 def llm(name='gpt-4o', provider='openai', **kw):
     'Provision LLM endpoint'
     if provider == 'docker':
+        # Use a small model that runs anywhere for local dev
+        model_name = 'llama3.2' if name == 'gpt-4o' else name
         env_dict = {
             'LLM_ENDPOINT': 'http://ollama:11434',
-            'LLM_MODEL': name,
+            'LLM_MODEL': model_name,
             'LLM_PROVIDER': 'ollama'
         }
         svc = {
@@ -578,7 +621,13 @@ def search(name='search', provider='docker', **kw):
             },
             'ports': {'9200': '9200'},
             'volumes': {'es-data': '/usr/share/elasticsearch/data'},
-            'restart': 'unless-stopped'
+            'restart': 'unless-stopped',
+            'healthcheck': {
+                'test': ['CMD-SHELL', 'curl -s http://localhost:9200/_cluster/health || exit 1'],
+                'interval': '15s',
+                'timeout': '10s',
+                'retries': 5
+            }
         }
         return (env_dict, svc)
     
@@ -634,9 +683,13 @@ def search(name='search', provider='docker', **kw):
     return ({}, None)
 
 
-def stack(resources, provider='docker'):
+def stack(resources=None, provider='docker'):
     'Compose multiple resources into a unified stack'
     from .compose import Compose
+    
+    # Use DEFAULTS if no resources provided
+    if resources is None:
+        resources = DEFAULTS
     
     merged_env = {}
     dc = Compose()
