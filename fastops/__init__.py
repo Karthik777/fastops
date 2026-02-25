@@ -11,5 +11,6 @@ from .detect import *
 from .compliance import *
 from .secrets import *
 from .resources import *
-from .ship import *
 from .connect import *
+from .teardown import *
+from .ship import *
