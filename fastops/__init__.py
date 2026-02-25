@@ -12,3 +12,4 @@ from .compliance import *
 from .secrets import *
 from .resources import *
 from .ship import *
+from .ci import *
