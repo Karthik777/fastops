@@ -75,36 +75,7 @@ def ship(path='.', *, to='docker', domain=None, port=None, proxy='caddy',
     print('Building docker-compose configuration...')
     compose = Compose()
     
-    # App service
-    app_name = Path(path).name or 'app'
-    app_svc = service(
-        build='.',
-        ports={app_port: app_port}
-    )
-    
-    # Load compliance defaults if specified
-    compliance_config = {}
-    if compliance == 'soc2':
-        compliance_config = soc2_defaults()
-    elif compliance == 'hipaa':
-        compliance_config = hipaa_defaults()
-    elif compliance == 'iso27001':
-        compliance_config = iso27001_defaults()
-    
-    # Apply service hardening
-    if compliance_config.get('harden_services'):
-        print('Hardening service configuration...')
-        app_svc = harden_service(app_svc, tmpfs=['/tmp'])
-    
-    compose = compose.svc(app_name, **app_svc)
-    
-    # Add logging if compliance requires it
-    if compliance_config.get('logging'):
-        print(f'Adding {compliance_config["logging"]} logging...')
-        log_svc = logging_svc(compliance_config['logging'])
-        compose = compose.svc('logging', **log_svc)
-    
-    # Add resources if provided
+    # Process resources first if provided
     resource_env = {}
     if resources:
         print('Provisioning resources...')
@@ -134,29 +105,38 @@ def ship(path='.', *, to='docker', domain=None, port=None, proxy='caddy',
         for item in res_dc:
             compose = compose._add(item)
     
-    # Apply resource environment to app service if any
-    if resource_env and app_svc:
-        # Update the app service with resource environment variables
-        app_svc_updated = dict(app_svc)
-        if 'environment' not in app_svc_updated:
-            app_svc_updated['environment'] = {}
-        if isinstance(app_svc_updated['environment'], dict):
-            app_svc_updated['environment'].update(resource_env)
-        else:
-            # Handle list format
-            env_list = list(app_svc_updated['environment']) if app_svc_updated.get('environment') else []
-            for k, v in resource_env.items():
-                env_list.append(f'{k}={v}')
-            app_svc_updated['environment'] = env_list
-        
-        # Rebuild compose with updated app service
-        compose_items = [item for item in compose if item[1] != app_name]
-        compose = Compose(compose_items)
-        compose = compose.svc(app_name, **app_svc_updated)
-        
-        # Re-add logging if it was there
-        if compliance_config.get('logging'):
-            compose = compose.svc('logging', **log_svc)
+    # App service with resource environment
+    app_name = Path(path).name or 'app'
+    app_svc = service(
+        build='.',
+        ports={app_port: app_port}
+    )
+    
+    # Add resource environment to app service
+    if resource_env:
+        app_svc['environment'] = resource_env
+    
+    # Load compliance defaults if specified
+    compliance_config = {}
+    if compliance == 'soc2':
+        compliance_config = soc2_defaults()
+    elif compliance == 'hipaa':
+        compliance_config = hipaa_defaults()
+    elif compliance == 'iso27001':
+        compliance_config = iso27001_defaults()
+    
+    # Apply service hardening
+    if compliance_config.get('harden_services'):
+        print('Hardening service configuration...')
+        app_svc = harden_service(app_svc, tmpfs=['/tmp'])
+    
+    compose = compose.svc(app_name, **app_svc)
+    
+    # Add logging if compliance requires it
+    if compliance_config.get('logging'):
+        print(f'Adding {compliance_config["logging"]} logging...')
+        log_svc = logging_svc(compliance_config['logging'])
+        compose = compose.svc('logging', **log_svc)
     
     # Add proxy if domain specified
     if domain:
