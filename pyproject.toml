@@ -36,6 +36,7 @@ queue = ["pika>=1.3"]
 search = ["elasticsearch>=8.0"]
 azure = ["azure-identity", "azure-mgmt-resource"]
 aws = ["boto3"]
+infra = ["pyinfra>=3.0"]
 all = [
     "fastsql>=0.0.13",
     "fsspec>=2024.2",
@@ -45,6 +46,7 @@ all = [
     "redis>=5.0",
     "pika>=1.3",
     "elasticsearch>=8.0",
+    "pyinfra>=3.0",
 ]
 
 [project.entry-points.nbdev]
