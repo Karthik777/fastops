@@ -27,7 +27,7 @@ _BUILDERS = {
 # %% ../nbs/13_ship.ipynb
 def ship(path='.', *, to='docker', domain=None, port=None, proxy='caddy', 
          preset='production', tls=True, tunnel=False, security=False, 
-         compliance=None, host=None, user='deploy', key=None, cloud=None):
+         compliance=None, host=None, user='deploy', key=None, cloud=None, resources=None):
     'Main orchestrator: detect → build → proxy → deploy'
     
     result = {
@@ -103,6 +103,60 @@ def ship(path='.', *, to='docker', domain=None, port=None, proxy='caddy',
         print(f'Adding {compliance_config["logging"]} logging...')
         log_svc = logging_svc(compliance_config['logging'])
         compose = compose.svc('logging', **log_svc)
+    
+    # Add resources if provided
+    resource_env = {}
+    if resources:
+        print('Provisioning resources...')
+        from .resources import stack
+        
+        # Determine effective provider based on deployment target
+        resource_provider = 'docker'
+        if to in ('azure', 'aws', 'gcp'):
+            resource_provider = to
+        
+        # Build resource stack with the appropriate provider
+        # Wrap each resource function to apply provider
+        provider_resources = {}
+        for res_name, res_fn in resources.items():
+            # Create a wrapper that calls the function and applies the provider
+            def wrapper(fn=res_fn, prov=resource_provider):
+                return fn() if callable(fn) else fn
+            provider_resources[res_name] = wrapper
+        
+        # Get resources environment, compose services, and volumes
+        res_env, res_dc, res_vols = stack(provider_resources, provider=resource_provider)
+        
+        # Merge resource environment variables
+        resource_env.update(res_env)
+        
+        # Merge resource services into main compose
+        for item in res_dc:
+            compose = compose._add(item)
+    
+    # Apply resource environment to app service if any
+    if resource_env and app_svc:
+        # Update the app service with resource environment variables
+        app_svc_updated = dict(app_svc)
+        if 'environment' not in app_svc_updated:
+            app_svc_updated['environment'] = {}
+        if isinstance(app_svc_updated['environment'], dict):
+            app_svc_updated['environment'].update(resource_env)
+        else:
+            # Handle list format
+            env_list = list(app_svc_updated['environment']) if app_svc_updated.get('environment') else []
+            for k, v in resource_env.items():
+                env_list.append(f'{k}={v}')
+            app_svc_updated['environment'] = env_list
+        
+        # Rebuild compose with updated app service
+        compose_items = [item for item in compose if item[1] != app_name]
+        compose = Compose(compose_items)
+        compose = compose.svc(app_name, **app_svc_updated)
+        
+        # Re-add logging if it was there
+        if compliance_config.get('logging'):
+            compose = compose.svc('logging', **log_svc)
     
     # Add proxy if domain specified
     if domain:
