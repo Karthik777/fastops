@@ -11,3 +11,9 @@ from .detect import *
 from .compliance import *
 from .secrets import *
 from .ship import *
+from .resources import *
+from .connect import *
+from .teardown import *
+from .infra import *
+from .gcp import *
+from .ci import *
