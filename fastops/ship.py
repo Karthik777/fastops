@@ -27,7 +27,7 @@ _BUILDERS = {
 # %% ../nbs/13_ship.ipynb
 def ship(path='.', *, to='docker', domain=None, port=None, proxy='caddy', 
          preset='production', tls=True, tunnel=False, security=False, 
-         compliance=None, host=None, user='deploy', key=None, cloud=None, resources=None):
+         compliance=None, host=None, user='deploy', key=None, cloud=None, resources=None, **kw):
     'Main orchestrator: detect → build → proxy → deploy'
     
     result = {
@@ -276,6 +276,32 @@ def ship(path='.', *, to='docker', domain=None, port=None, proxy='caddy',
         result['status'] = 'deployed'
         result['target'] = 'aws'
         result['aws'] = aws_result
+    
+    elif to == 'gcp':
+        print('Deploying to GCP Cloud Run...')
+        from .gcp import gcp_stack
+        
+        gcp_result = gcp_stack(
+            app_name,
+            image=kw.get('image'),
+            port=app_port,
+            region=kw.get('region', 'us-central1'),
+            project=kw.get('project'),
+            postgres=kw.get('postgres', False),
+            redis=kw.get('redis', False),
+            domain=domain,
+            min_instances=kw.get('min_instances', 0),
+            max_instances=kw.get('max_instances', 10),
+            memory=kw.get('memory', '512Mi'),
+            cpu=kw.get('cpu', '1'),
+            env=kw.get('env'),
+            service_account=kw.get('service_account'),
+        )
+        
+        result['status'] = 'deployed'
+        result['target'] = 'gcp'
+        result['url'] = gcp_result.get('url', f'https://{domain}' if domain else '')
+        result['gcp'] = gcp_result
     
     else:
         result['status'] = 'error'
