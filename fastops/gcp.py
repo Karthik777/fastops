@@ -6,9 +6,7 @@
 __all__ = ['Gcp', 'gcloud', 'gcp_stack']
 
 # %% ../nbs/14_gcp.ipynb
-import os
-import json
-import subprocess
+import os, json, subprocess
 from .core import Cli
 
 # %% ../nbs/14_gcp.ipynb
