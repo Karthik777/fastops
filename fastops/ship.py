@@ -27,7 +27,7 @@ _BUILDERS = {
 # %% ../nbs/13_ship.ipynb
 def ship(path='.', *, to='docker', domain=None, port=None, proxy='caddy', 
          preset='production', tls=True, tunnel=False, security=False, 
-         compliance=None, host=None, user='deploy', key=None, cloud=None, resources=None):
+         compliance=None, host=None, user='deploy', key=None, cloud=None, resources=None, **kw):
     'Main orchestrator: detect → build → proxy → deploy'
     
     result = {
@@ -218,21 +218,15 @@ def ship(path='.', *, to='docker', domain=None, port=None, proxy='caddy',
         result['target'] = 'docker'
         result['url'] = f'http://localhost:{app_port}'
     
-    elif to == 'vps':
+    elif to == 'vps' or (to == 'hetzner' and host):
         if not host:
-            raise ValueError('host parameter required for VPS deployment')
+            raise ValueError('host parameter required for VPS deployment. Use to="hetzner" to auto-provision.')
         
         print(f'Deploying to VPS {host}...')
-        from .vps import deploy
+        from .vps import deploy as vps_deploy
         
-        # Deploy using existing vps.py deploy function
-        deploy_result = deploy(
-            host=host,
-            user=user,
-            key=key,
-            path=path,
-            compliance=compliance
-        )
+        deploy_path = kw.get('deploy_path', f'/srv/{app_name}')
+        vps_deploy(compose, host, user=user, key=key, path=deploy_path)
         result['status'] = 'deployed'
         result['target'] = 'vps'
         result['host'] = host
@@ -276,6 +270,118 @@ def ship(path='.', *, to='docker', domain=None, port=None, proxy='caddy',
         result['status'] = 'deployed'
         result['target'] = 'aws'
         result['aws'] = aws_result
+    
+    elif to == 'hetzner':
+        print('Deploying to Hetzner...')
+        from .vps import vps_init, create, deploy as vps_deploy, server_ip, servers, hcloud_auth
+        
+        # Server name from app name
+        server_name = kw.get('server_name', app_name)
+        server_type = kw.get('server_type', 'cx22')       # €4/mo default — cheapest usable
+        location = kw.get('location', 'nbg1')              # Nuremberg, Germany — good EU default
+        image = kw.get('image', 'ubuntu-24.04')             # Latest LTS
+        ssh_keys = kw.get('ssh_keys', [])
+        pub_keys = kw.get('pub_keys', '')
+        
+        # Read SSH public key from default location if not provided
+        if not pub_keys:
+            import os
+            for key_path in ['~/.ssh/id_ed25519.pub', '~/.ssh/id_rsa.pub']:
+                expanded = os.path.expanduser(key_path)
+                if os.path.exists(expanded):
+                    pub_keys = open(expanded).read().strip()
+                    break
+        
+        # Check if server already exists
+        existing = None
+        try:
+            existing_servers = servers()
+            for s in existing_servers:
+                if s['name'] == server_name:
+                    existing = s
+                    break
+        except Exception:
+            pass  # hcloud CLI might not be configured yet
+        
+        if existing:
+            print(f'Server {server_name} already exists at {existing["ip"]}')
+            ip = existing['ip']
+        else:
+            # Generate cloud-init
+            print(f'Provisioning Hetzner {server_type} in {location}...')
+            
+            # Build cloud-init packages list
+            init_packages = ['git', 'htop', 'curl']
+            
+            # Generate cloud-init YAML
+            cloud_init_yaml = vps_init(
+                server_name,
+                pub_keys=pub_keys,
+                username=user,
+                docker=True,
+                packages=init_packages,
+                cf_token=kw.get('cf_token'),
+            )
+            
+            # Create the server
+            ip = create(
+                server_name,
+                image=image,
+                server_type=server_type,
+                location=location,
+                cloud_init=cloud_init_yaml,
+                ssh_keys=ssh_keys,
+            )
+            
+            # Wait for server to be ready (cloud-init takes ~60-90s)
+            print(f'Server created at {ip}. Waiting for cloud-init to complete...')
+            import time
+            max_wait = kw.get('wait_timeout', 180)  # 3 minutes default
+            waited = 0
+            interval = 10
+            ready = False
+            while waited < max_wait:
+                time.sleep(interval)
+                waited += interval
+                try:
+                    from .vps import run_ssh
+                    result_cmd = run_ssh(ip, 'cloud-init status --wait 2>/dev/null || echo done',
+                                   user=user, key=key)
+                    if 'done' in result_cmd or 'status: done' in result_cmd:
+                        ready = True
+                        break
+                except Exception:
+                    pass  # SSH not ready yet
+                print(f'  Waiting... ({waited}s)')
+            
+            if not ready:
+                print(f'  Warning: cloud-init may not have completed after {max_wait}s. Proceeding anyway.')
+        
+        # Configure DNS if domain provided
+        if domain:
+            try:
+                from .cloudflare import dns_record
+                print(f'Configuring DNS: {domain} → {ip}')
+                dns_record(domain.split('.')[-2] + '.' + domain.split('.')[-1],
+                          domain.split('.')[0] if '.' in domain and len(domain.split('.')) > 2 else '@',
+                          ip, proxied=kw.get('proxied', False))
+            except Exception as e:
+                print(f'  DNS configuration skipped: {e}')
+        
+        # Deploy the compose stack
+        print(f'Deploying to {server_name} ({ip})...')
+        from .vps import deploy as vps_deploy
+        deploy_path = kw.get('deploy_path', f'/srv/{app_name}')
+        vps_deploy(compose, ip, user=user, key=key, path=deploy_path)
+        
+        result['status'] = 'deployed'
+        result['target'] = 'hetzner'
+        result['host'] = ip
+        result['server_name'] = server_name
+        result['server_type'] = server_type
+        result['location'] = location
+        result['deploy_path'] = deploy_path
+        result['url'] = f'https://{domain}' if domain else f'http://{ip}:{app_port}'
     
     else:
         result['status'] = 'error'
