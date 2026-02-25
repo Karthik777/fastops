@@ -383,6 +383,32 @@ def ship(path='.', *, to='docker', domain=None, port=None, proxy='caddy',
         result['deploy_path'] = deploy_path
         result['url'] = f'https://{domain}' if domain else f'http://{ip}:{app_port}'
     
+    elif to == 'gcp':
+        print('Deploying to GCP Cloud Run...')
+        from .gcp import gcp_stack
+        
+        gcp_result = gcp_stack(
+            app_name,
+            image=kw.get('image'),
+            port=app_port,
+            region=kw.get('region', 'us-central1'),
+            project=kw.get('project'),
+            postgres=kw.get('postgres', False),
+            redis=kw.get('redis', False),
+            domain=domain,
+            min_instances=kw.get('min_instances', 0),
+            max_instances=kw.get('max_instances', 10),
+            memory=kw.get('memory', '512Mi'),
+            cpu=kw.get('cpu', '1'),
+            env=kw.get('env'),
+            service_account=kw.get('service_account'),
+        )
+        
+        result['status'] = 'deployed'
+        result['target'] = 'gcp'
+        result['url'] = gcp_result.get('url', f'https://{domain}' if domain else '')
+        result['gcp'] = gcp_result
+    
     else:
         result['status'] = 'error'
         result['error'] = f'Unknown deployment target: {to}'

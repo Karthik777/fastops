@@ -1,6 +1,6 @@
 """Resource teardown and lifecycle management. Safely destroy provisioned resources."""
 
-__all__ = ['destroy', 'destroy_stack', 'status']
+__all__ = ['destroy', 'destroy_stack', 'status', 'teardown_gcp', 'destroy_cloud_run', 'destroy_cloud_sql', 'destroy_memorystore']
 
 import os
 import json
@@ -360,3 +360,56 @@ def status(resource_type, name, provider='docker', **kw):
     
     return {'healthy': False, 'provider': provider, 'name': name,
            'message': 'Unsupported provider or resource type'}
+
+
+# GCP-specific teardown functions
+
+def destroy_cloud_run(name, region, project=None):
+    'Delete a Cloud Run service'
+    from .gcp import callgcloud
+    proj_args = ['--project', project] if project else []
+    try:
+        callgcloud('run', 'services', 'delete', name, 
+                   '--region', region, '--quiet', *proj_args)
+        print(f'Deleted Cloud Run service: {name}')
+    except RuntimeError as e:
+        print(f'Error deleting Cloud Run service: {e}')
+
+def destroy_cloud_sql(name, project=None):
+    'Delete a Cloud SQL instance'
+    from .gcp import callgcloud
+    proj_args = ['--project', project] if project else []
+    try:
+        callgcloud('sql', 'instances', 'delete', name, 
+                   '--quiet', *proj_args)
+        print(f'Deleted Cloud SQL instance: {name}')
+    except RuntimeError as e:
+        print(f'Error deleting Cloud SQL instance: {e}')
+
+def destroy_memorystore(name, region, project=None):
+    'Delete a Memorystore (Redis) instance'
+    from .gcp import callgcloud
+    proj_args = ['--project', project] if project else []
+    try:
+        callgcloud('redis', 'instances', 'delete', name, 
+                   '--region', region, '--quiet', *proj_args)
+        print(f'Deleted Memorystore instance: {name}')
+    except RuntimeError as e:
+        print(f'Error deleting Memorystore instance: {e}')
+
+def teardown_gcp(name, region='us-central1', project=None, postgres=False, redis=False):
+    'Tear down all GCP resources for an application'
+    print(f'Tearing down GCP resources for {name}...')
+    
+    # Delete Cloud Run service
+    destroy_cloud_run(name, region, project)
+    
+    # Delete Cloud SQL if it was created
+    if postgres:
+        destroy_cloud_sql(f'{name}-db', project)
+    
+    # Delete Memorystore if it was created
+    if redis:
+        destroy_memorystore(f'{name}-redis', region, project)
+    
+    print(f'Teardown complete for {name}')
