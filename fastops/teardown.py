@@ -8,22 +8,29 @@ import subprocess
 import shutil
 
 
+def _docker_noop():
+    'Docker resources managed by compose'
+    return {'destroyed': True, 'message': 'Remove via docker compose down -v'}
+
+def _not_found(msg):
+    'Resource not found response'
+    return {'destroyed': False, 'message': msg}
+
+def _success(msg):
+    'Successful deletion response'
+    return {'destroyed': True, 'message': msg}
+
+
 def destroy(resource_type, name, provider='docker', **kw):
     'Destroy a single provisioned resource'
     dispatchers = {
-        'database': _destroy_database,
-        'cache': _destroy_cache,
-        'queue': _destroy_queue,
-        'bucket': _destroy_bucket,
-        'llm': _destroy_llm,
-        'search': _destroy_search,
+        'database': _destroy_database, 'cache': _destroy_cache, 'queue': _destroy_queue,
+        'bucket': _destroy_bucket, 'llm': _destroy_llm, 'search': _destroy_search,
         'function': _destroy_function
     }
-    
     if resource_type not in dispatchers:
         return {'destroyed': False, 'resource': name, 'provider': provider, 
                 'message': f'Unknown resource type: {resource_type}'}
-    
     result = dispatchers[resource_type](name, provider, **kw)
     result.setdefault('resource', name)
     result.setdefault('provider', provider)
@@ -32,240 +39,171 @@ def destroy(resource_type, name, provider='docker', **kw):
 
 def _destroy_database(name, provider, **kw):
     'Destroy a database instance'
-    if provider == 'docker':
-        return {'destroyed': True, 'message': 'Remove via docker compose down -v'}
-    
+    if provider == 'docker': return _docker_noop()
     elif provider == 'aws':
         from .aws import callaws
         try:
-            callaws('rds', 'delete-db-instance',
-                   '--db-instance-identifier', name,
-                   '--skip-final-snapshot',
-                   '--delete-automated-backups')
+            callaws('rds', 'delete-db-instance', '--db-instance-identifier', name,
+                   '--skip-final-snapshot', '--delete-automated-backups')
         except Exception as e:
-            if 'DBInstanceNotFound' in str(e):
-                return {'destroyed': False, 'message': f'RDS instance {name} not found'}
+            if 'DBInstanceNotFound' in str(e): return _not_found(f'RDS instance {name} not found')
             raise
-        return {'destroyed': True, 'message': f'RDS instance {name} deletion initiated'}
-    
+        return _success(f'RDS instance {name} deletion initiated')
     elif provider == 'azure':
         from .azure import callaz
         rg = kw.get('resource_group')
         try:
-            callaz('postgres', 'flexible-server', 'delete',
-                  '--name', name,
-                  '--resource-group', rg,
-                  '--yes')
+            callaz('postgres', 'flexible-server', 'delete', '--name', name,
+                  '--resource-group', rg, '--yes')
         except Exception as e:
-            if 'ResourceNotFound' in str(e):
-                return {'destroyed': False, 'message': f'Azure DB {name} not found'}
+            if 'ResourceNotFound' in str(e): return _not_found(f'Azure DB {name} not found')
             raise
-        return {'destroyed': True, 'message': f'Azure Postgres {name} deleted'}
-    
-    return {'destroyed': False, 'message': f'Unsupported provider: {provider}'}
+        return _success(f'Azure Postgres {name} deleted')
+    return _not_found(f'Unsupported provider: {provider}')
 
 
 def _destroy_cache(name, provider, **kw):
     'Destroy a cache instance'
-    if provider == 'docker':
-        return {'destroyed': True, 'message': 'Remove via docker compose down -v'}
-    
+    if provider == 'docker': return _docker_noop()
     elif provider == 'aws':
         from .aws import callaws
         try:
-            callaws('elasticache', 'delete-cache-cluster',
-                   '--cache-cluster-id', name)
+            callaws('elasticache', 'delete-cache-cluster', '--cache-cluster-id', name)
         except Exception as e:
-            if 'CacheClusterNotFound' in str(e):
-                return {'destroyed': False, 'message': f'ElastiCache cluster {name} not found'}
+            if 'CacheClusterNotFound' in str(e): return _not_found(f'ElastiCache cluster {name} not found')
             raise
-        return {'destroyed': True, 'message': f'ElastiCache cluster {name} deletion initiated'}
-    
+        return _success(f'ElastiCache cluster {name} deletion initiated')
     elif provider == 'azure':
         from .azure import callaz
         rg = kw.get('resource_group')
         try:
-            callaz('redis', 'delete',
-                  '--name', name,
-                  '--resource-group', rg,
-                  '--yes')
+            callaz('redis', 'delete', '--name', name, '--resource-group', rg, '--yes')
         except Exception as e:
-            if 'ResourceNotFound' in str(e):
-                return {'destroyed': False, 'message': f'Azure Redis {name} not found'}
+            if 'ResourceNotFound' in str(e): return _not_found(f'Azure Redis {name} not found')
             raise
-        return {'destroyed': True, 'message': f'Azure Redis {name} deleted'}
-    
-    return {'destroyed': False, 'message': f'Unsupported provider: {provider}'}
+        return _success(f'Azure Redis {name} deleted')
+    return _not_found(f'Unsupported provider: {provider}')
 
 
 def _destroy_queue(name, provider, **kw):
     'Destroy a message queue'
-    if provider == 'docker':
-        return {'destroyed': True, 'message': 'Remove via docker compose down -v'}
-    
+    if provider == 'docker': return _docker_noop()
     elif provider == 'aws':
         from .aws import callaws
         try:
-            # Get queue URL first
             result = callaws('sqs', 'get-queue-url', '--queue-name', name)
-            url = result['QueueUrl']
-            # Delete the queue
-            callaws('sqs', 'delete-queue', '--queue-url', url)
+            callaws('sqs', 'delete-queue', '--queue-url', result['QueueUrl'])
         except Exception as e:
             if 'NonExistentQueue' in str(e) or 'QueueDoesNotExist' in str(e):
-                return {'destroyed': False, 'message': f'SQS queue {name} not found'}
+                return _not_found(f'SQS queue {name} not found')
             raise
-        return {'destroyed': True, 'message': f'SQS queue {name} deleted'}
-    
+        return _success(f'SQS queue {name} deleted')
     elif provider == 'azure':
         from .azure import callaz
         rg = kw.get('resource_group')
         namespace = kw.get('namespace', f'{name}-ns')
         try:
-            callaz('servicebus', 'namespace', 'delete',
-                  '--name', namespace,
-                  '--resource-group', rg,
-                  '--yes')
+            callaz('servicebus', 'namespace', 'delete', '--name', namespace,
+                  '--resource-group', rg, '--yes')
         except Exception as e:
-            if 'ResourceNotFound' in str(e):
-                return {'destroyed': False, 'message': f'Azure ServiceBus namespace {namespace} not found'}
+            if 'ResourceNotFound' in str(e): return _not_found(f'Azure ServiceBus namespace {namespace} not found')
             raise
-        return {'destroyed': True, 'message': f'Azure ServiceBus namespace {namespace} deleted'}
-    
+        return _success(f'Azure ServiceBus namespace {namespace} deleted')
     elif provider == 'gcp':
         try:
-            # Delete subscription first
             sub_name = f'{name}-sub'
             subprocess.run(['gcloud', 'pubsub', 'subscriptions', 'delete', sub_name, '--quiet'],
                           capture_output=True, text=True, check=True)
-            # Delete topic
             subprocess.run(['gcloud', 'pubsub', 'topics', 'delete', name, '--quiet'],
                           capture_output=True, text=True, check=True)
         except subprocess.CalledProcessError as e:
             if 'NOT_FOUND' in e.stderr or 'does not exist' in e.stderr.lower():
-                return {'destroyed': False, 'message': f'GCP Pub/Sub topic {name} not found'}
+                return _not_found(f'GCP Pub/Sub topic {name} not found')
             raise
-        return {'destroyed': True, 'message': f'GCP Pub/Sub topic {name} deleted'}
-    
-    return {'destroyed': False, 'message': f'Unsupported provider: {provider}'}
+        return _success(f'GCP Pub/Sub topic {name} deleted')
+    return _not_found(f'Unsupported provider: {provider}')
 
 
 def _destroy_bucket(name, provider, **kw):
     'Destroy object storage bucket'
-    if provider == 'docker':
-        return {'destroyed': True, 'message': 'Remove via docker compose down -v'}
-    
+    if provider == 'docker': return _docker_noop()
     elif provider == 'aws':
         from .aws import callaws
         try:
-            # Empty bucket first
             callaws('s3', 'rm', f's3://{name}', '--recursive')
-            # Delete bucket
             callaws('s3api', 'delete-bucket', '--bucket', name)
         except Exception as e:
-            if 'NoSuchBucket' in str(e):
-                return {'destroyed': False, 'message': f'S3 bucket {name} not found'}
+            if 'NoSuchBucket' in str(e): return _not_found(f'S3 bucket {name} not found')
             raise
-        return {'destroyed': True, 'message': f'S3 bucket {name} deleted'}
-    
+        return _success(f'S3 bucket {name} deleted')
     elif provider == 'azure':
         from .azure import callaz
         rg = kw.get('resource_group')
         account_name = kw.get('account_name', name.replace('-', '').replace('_', '')[:24])
         try:
-            # Delete container
-            callaz('storage', 'container', 'delete',
-                  '--name', name,
-                  '--account-name', account_name,
-                  '--yes')
-            # Delete storage account
-            callaz('storage', 'account', 'delete',
-                  '--name', account_name,
-                  '--resource-group', rg,
-                  '--yes')
+            callaz('storage', 'container', 'delete', '--name', name,
+                  '--account-name', account_name, '--yes')
+            callaz('storage', 'account', 'delete', '--name', account_name,
+                  '--resource-group', rg, '--yes')
         except Exception as e:
             if 'ResourceNotFound' in str(e) or 'NotFound' in str(e):
-                return {'destroyed': False, 'message': f'Azure storage {name} not found'}
+                return _not_found(f'Azure storage {name} not found')
             raise
-        return {'destroyed': True, 'message': f'Azure storage account {account_name} deleted'}
-    
+        return _success(f'Azure storage account {account_name} deleted')
     elif provider == 'gcp':
         try:
             subprocess.run(['gcloud', 'storage', 'rm', '-r', f'gs://{name}', '--quiet'],
                           capture_output=True, text=True, check=True)
         except subprocess.CalledProcessError as e:
             if 'NOT_FOUND' in e.stderr or 'does not exist' in e.stderr.lower():
-                return {'destroyed': False, 'message': f'GCS bucket {name} not found'}
+                return _not_found(f'GCS bucket {name} not found')
             raise
-        return {'destroyed': True, 'message': f'GCS bucket {name} deleted'}
-    
-    return {'destroyed': False, 'message': f'Unsupported provider: {provider}'}
+        return _success(f'GCS bucket {name} deleted')
+    return _not_found(f'Unsupported provider: {provider}')
 
 
 def _destroy_llm(name, provider, **kw):
     'Destroy LLM endpoint'
-    if provider == 'docker':
-        return {'destroyed': True, 'message': 'Remove via docker compose down -v'}
-    
-    elif provider == 'openai':
-        return {'destroyed': True, 'message': 'No teardown needed for OpenAI'}
-    
+    if provider == 'docker': return _docker_noop()
+    elif provider == 'openai': return _success('No teardown needed for OpenAI')
     elif provider == 'azure':
         from .azure import callaz
         rg = kw.get('resource_group')
         deployment_name = kw.get('deployment', f'{name}-deployment')
         try:
-            # Delete deployment
             callaz('cognitiveservices', 'account', 'deployment', 'delete',
-                  '--name', name,
-                  '--resource-group', rg,
-                  '--deployment-name', deployment_name)
-            # Delete account
+                  '--name', name, '--resource-group', rg, '--deployment-name', deployment_name)
             callaz('cognitiveservices', 'account', 'delete',
-                  '--name', name,
-                  '--resource-group', rg)
+                  '--name', name, '--resource-group', rg)
         except Exception as e:
-            if 'ResourceNotFound' in str(e):
-                return {'destroyed': False, 'message': f'Azure OpenAI {name} not found'}
+            if 'ResourceNotFound' in str(e): return _not_found(f'Azure OpenAI {name} not found')
             raise
-        return {'destroyed': True, 'message': f'Azure OpenAI account {name} deleted'}
-    
-    elif provider == 'aws':
-        return {'destroyed': True, 'message': 'No teardown needed for Bedrock'}
-    
-    return {'destroyed': False, 'message': f'Unsupported provider: {provider}'}
+        return _success(f'Azure OpenAI account {name} deleted')
+    elif provider == 'aws': return _success('No teardown needed for Bedrock')
+    return _not_found(f'Unsupported provider: {provider}')
 
 
 def _destroy_search(name, provider, **kw):
     'Destroy search engine'
-    if provider == 'docker':
-        return {'destroyed': True, 'message': 'Remove via docker compose down -v'}
-    
+    if provider == 'docker': return _docker_noop()
     elif provider == 'aws':
         from .aws import callaws
         try:
             callaws('opensearch', 'delete-domain', '--domain-name', name)
         except Exception as e:
-            if 'ResourceNotFoundException' in str(e):
-                return {'destroyed': False, 'message': f'OpenSearch domain {name} not found'}
+            if 'ResourceNotFoundException' in str(e): return _not_found(f'OpenSearch domain {name} not found')
             raise
-        return {'destroyed': True, 'message': f'OpenSearch domain {name} deletion initiated'}
-    
+        return _success(f'OpenSearch domain {name} deletion initiated')
     elif provider == 'azure':
         from .azure import callaz
         rg = kw.get('resource_group')
         try:
-            callaz('search', 'service', 'delete',
-                  '--name', name,
-                  '--resource-group', rg,
-                  '--yes')
+            callaz('search', 'service', 'delete', '--name', name, '--resource-group', rg, '--yes')
         except Exception as e:
-            if 'ResourceNotFound' in str(e):
-                return {'destroyed': False, 'message': f'Azure Search {name} not found'}
+            if 'ResourceNotFound' in str(e): return _not_found(f'Azure Search {name} not found')
             raise
-        return {'destroyed': True, 'message': f'Azure Search {name} deleted'}
-    
-    return {'destroyed': False, 'message': f'Unsupported provider: {provider}'}
+        return _success(f'Azure Search {name} deleted')
+    return _not_found(f'Unsupported provider: {provider}')
 
 
 def _destroy_function(name, provider, **kw):
@@ -275,38 +213,29 @@ def _destroy_function(name, provider, **kw):
         try:
             callaws('lambda', 'delete-function', '--function-name', name)
         except Exception as e:
-            if 'ResourceNotFoundException' in str(e):
-                return {'destroyed': False, 'message': f'Lambda function {name} not found'}
+            if 'ResourceNotFoundException' in str(e): return _not_found(f'Lambda function {name} not found')
             raise
-        return {'destroyed': True, 'message': f'Lambda function {name} deleted'}
-    
+        return _success(f'Lambda function {name} deleted')
     elif provider == 'azure':
         from .azure import callaz
         rg = kw.get('resource_group')
         try:
-            callaz('functionapp', 'delete',
-                  '--name', name,
-                  '--resource-group', rg,
-                  '--yes')
+            callaz('functionapp', 'delete', '--name', name, '--resource-group', rg, '--yes')
         except Exception as e:
-            if 'ResourceNotFound' in str(e):
-                return {'destroyed': False, 'message': f'Azure Function {name} not found'}
+            if 'ResourceNotFound' in str(e): return _not_found(f'Azure Function {name} not found')
             raise
-        return {'destroyed': True, 'message': f'Azure Function {name} deleted'}
-    
+        return _success(f'Azure Function {name} deleted')
     elif provider == 'gcp':
         region = kw.get('region', 'us-central1')
         try:
-            subprocess.run(['gcloud', 'functions', 'delete', name,
-                           '--quiet', '--region', region],
+            subprocess.run(['gcloud', 'functions', 'delete', name, '--quiet', '--region', region],
                           capture_output=True, text=True, check=True)
         except subprocess.CalledProcessError as e:
             if 'NOT_FOUND' in e.stderr or 'does not exist' in e.stderr.lower():
-                return {'destroyed': False, 'message': f'GCP function {name} not found'}
+                return _not_found(f'GCP function {name} not found')
             raise
-        return {'destroyed': True, 'message': f'GCP function {name} deleted'}
-    
-    return {'destroyed': False, 'message': f'Unsupported provider: {provider}'}
+        return _success(f'GCP function {name} deleted')
+    return _not_found(f'Unsupported provider: {provider}')
 
 
 def _infer_resource_type(env_dict):
