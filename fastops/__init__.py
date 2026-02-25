@@ -6,3 +6,8 @@ from .apps import *
 from .cloudflare import *
 from .multipass import *
 from .caddy import *
+from .proxy import *
+from .detect import *
+from .compliance import *
+from .secrets import *
+from .ship import *
