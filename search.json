@@ -1,0 +1,422 @@
+[
+  {
+    "objectID": "compose.html",
+    "href": "compose.html",
+    "title": "compose",
+    "section": "",
+    "text": "service is a function that returns a plain dict matching the docker-compose service spec. It handles the conversion from Python-friendly args (dict ports, dict env) to compose format (list ports, environment key).\n\nsource\n\n\n\ndef service(\n    image:NoneType=None, build:NoneType=None, ports:NoneType=None, env:NoneType=None, volumes:NoneType=None,\n    depends_on:NoneType=None, command:NoneType=None, kw:VAR_KEYWORD\n):\n\nCreate a docker-compose service dict\n\nsource\n\n\n\n\ndef dict2str(\n    d:dict, sep:str=':'\n):\n\n\nd = service(image='nginx', ports={80: 80})\nassert d['image'] == 'nginx'\nassert d['ports'] == ['80:80']\n\n\nd = service(image='postgres:15', env={'POSTGRES_PASSWORD': 'secret'}, volumes={'pgdata': '/var/lib/postgresql/data'})\nassert d['environment'] == ['POSTGRES_PASSWORD=secret']\nassert d['volumes'] == ['pgdata:/var/lib/postgresql/data']",
+    "crumbs": [
+      "compose"
+    ]
+  },
+  {
+    "objectID": "compose.html#service",
+    "href": "compose.html#service",
+    "title": "compose",
+    "section": "",
+    "text": "service is a function that returns a plain dict matching the docker-compose service spec. It handles the conversion from Python-friendly args (dict ports, dict env) to compose format (list ports, environment key).\n\nsource\n\n\n\ndef service(\n    image:NoneType=None, build:NoneType=None, ports:NoneType=None, env:NoneType=None, volumes:NoneType=None,\n    depends_on:NoneType=None, command:NoneType=None, kw:VAR_KEYWORD\n):\n\nCreate a docker-compose service dict\n\nsource\n\n\n\n\ndef dict2str(\n    d:dict, sep:str=':'\n):\n\n\nd = service(image='nginx', ports={80: 80})\nassert d['image'] == 'nginx'\nassert d['ports'] == ['80:80']\n\n\nd = service(image='postgres:15', env={'POSTGRES_PASSWORD': 'secret'}, volumes={'pgdata': '/var/lib/postgresql/data'})\nassert d['environment'] == ['POSTGRES_PASSWORD=secret']\nassert d['volumes'] == ['pgdata:/var/lib/postgresql/data']",
+    "crumbs": [
+      "compose"
+    ]
+  },
+  {
+    "objectID": "compose.html#compose",
+    "href": "compose.html#compose",
+    "title": "compose",
+    "section": "Compose",
+    "text": "Compose\nThe Compose class provides a fluent builder for docker-compose files. Chain .svc(), .network(), and .volume() calls, then render with str() or save to disk.\nServices are stored as plain dicts. to_dict() just assembles the top-level compose structure.\n\nsource\n\nDockerCompose\n\ndef DockerCompose(\n    path:str='docker-compose.yml'\n):\n\nWrap docker compose CLI: getattr dispatches subcommands, kwargs become flags\n\nsource\n\n\nCompose\n\ndef Compose(\n    items:NoneType=None, rest:VAR_POSITIONAL, use_list:bool=False, match:NoneType=None\n):\n\nFluent builder for docker-compose.yml files\n\ndc = (Compose()\n    .svc('web', image='nginx', ports={80: 80})\n    .svc('db', image='postgres:15', env={'POSTGRES_PASSWORD': 'secret'}))\n\nd = dc.to_dict()\nassert 'web' in d['services']\nassert 'db' in d['services']\nassert d['services']['web']['image'] == 'nginx'\nprint(dc)\n\n\ndc = (Compose()\n    .svc('web', image='nginx', ports={80: 80})\n    .svc('redis', image='redis:alpine')\n    .svc('db', image='postgres:15', env={'POSTGRES_PASSWORD': 'secret'}, volumes={'pgdata': '/var/lib/postgresql/data'})\n    .network('backend')\n    .volume('pgdata'))\n\nd = dc.to_dict()\nassert 'networks' in d\nassert 'volumes' in d\nassert 'pgdata' in d['volumes']\nprint(dc)\n\nServices with a Dockerfile builder set build: . in the compose output:\n\nfrom fastcore.foundation import working_directory\n\n\ndf = Dockerfile().from_('python:3.11-slim').run('pip install flask').copy('.', '/app').cmd(['python', 'app.py'])\ndc = Compose().svc('web', build=df, ports={5000: 5000})\n\nassert dc.to_dict()['services']['web']['build'] == '.'\nprint(dc)",
+    "crumbs": [
+      "compose"
+    ]
+  },
+  {
+    "objectID": "compose.html#templates",
+    "href": "compose.html#templates",
+    "title": "compose",
+    "section": "Templates",
+    "text": "Templates\nModular building blocks for production Docker stacks — use them independently or compose together.\n\nsource\n\nswag_conf\n\ndef swag_conf(\n    domain, port, app:str='app'\n):\n\nSWAG nginx site-conf for reverse-proxying to app\n\nsource\n\n\nswag\n\ndef swag(\n    domain, app:str='app', port:NoneType=None, conf_path:str='proxy.conf', validation:str='http',\n    subdomains:str='wildcard', cloudflared:bool=False, mods:NoneType=None, kw:VAR_KEYWORD\n):\n\nSWAG reverse-proxy service kwargs for Compose.svc()\n\nsource\n\n\nappfile\n\ndef appfile(\n    port:int=5001, volume:str='/app/data', image:str='python:3.12-slim'\n):\n\nStandard Python webapp Dockerfile\n\n\nUsage\n# Standalone Dockerfile (works with anything: AWS, bare metal, SWAG)\nappfile(port=5001).save('myapp/Dockerfile')\n\n# Compose with SWAG (port= auto-writes the nginx proxy conf)\ndc = (Compose()\n    .svc('app', build='.', networks=['web'], restart='unless-stopped')\n    .svc('swag', **swag('myapp.ai', port=5001, conf_path='myapp/proxy.conf',\n                        cloudflared=True, mods=['crowdsec']))\n    .network('web').volume('swag_config'))\ndc.save('myapp/docker-compose.yml')\n\n# Compose without SWAG\ndc = Compose().svc('app', build='.', ports={5001: 5001})\n\n# Mix with anything\ndc = (Compose()\n    .svc('app', build='.', networks=['web'])\n    .svc('swag', **swag('myapp.ai', port=5001))\n    .svc('redis', image='redis:alpine', networks=['web'])\n    .network('web').volume('swag_config'))\n\ndf = appfile(port=5001)\ns = str(df)\nassert 'FROM python:3.12-slim' in s\nassert 'WORKDIR /app' in s\nassert 'COPY requirements.txt .' in s\nassert 'RUN pip install --no-cache-dir -r requirements.txt' in s\nassert 'mkdir -p /app/data' in s\nassert 'VOLUME' not in s\nassert 'EXPOSE 5001' in s\nassert 'CMD [\"python\", \"main.py\"]' in s\nprint('appfile() \\u2713'); print(df)\n\n\nkw = swag('myapp.ai')\nassert kw['image'] == 'lscr.io/linuxserver/swag'\nassert kw['ports'] == {443: 443, 80: 80}\nassert kw['env']['URL'] == 'myapp.ai'\nassert kw['cap_add'] == ['NET_ADMIN']\nassert kw['depends_on'] == ['app']\nprint('swag() \\u2713')\n\n\nkw = swag('myapp.ai', cloudflared=True, mods=['crowdsec'])\nassert 'ports' not in kw\nassert 'crowdsec' in kw['env']['DOCKER_MODS']\nassert 'universal-cloudflared' in kw['env']['DOCKER_MODS']\nassert kw['env']['CF_REMOTE_MANAGE_TOKEN'] == '${CF_TUNNEL_TOKEN}'\n\n# Integrates cleanly with Compose.svc()\ndc = (Compose()\n    .svc('app', build='.', networks=['web'], restart='unless-stopped')\n    .svc('swag', **swag('myapp.ai', cloudflared=True, mods=['crowdsec']))\n    .network('web').volume('swag_config'))\nd = dc.to_dict()\nassert 'swag' in d['services']\nassert d['services']['swag']['cap_add'] == ['NET_ADMIN']\nprint('swag() + cloudflared + mods \\u2713'); print(dc)\n\n\n\nLive example: FastHTML + SWAG + DuckDNS (free SSL)\nDuckDNS is a free DNS service. SWAG has built-in DuckDNS validation — no Cloudflare or domain registrar needed.\n\nGo to https://www.duckdns.org, sign in (GitHub/Google), create a subdomain (e.g. myapp.duckdns.org), copy your token\nPoint the subdomain to your VPS IP (done in DuckDNS web UI)\nSet the two vars below and run\n\n\nNote: DuckDNS wildcard certs (*.sub.duckdns.org) don’t cover the bare domain. Use subdomains='' for DuckDNS.\n\n\nimport os\napp_dir = Path.home() / '.fastops-example'\nif app_dir.exists():\n    import shutil; shutil.rmtree(app_dir)\napp_dir.mkdir()\n\n# Write the FastHTML app\n(app_dir / 'main.py').write_text('''from fasthtml.common import *\n\ndb = database('data/todos.db')\ntodos = db.t.todos\nif todos not in db.t: todos.create(id=int, title=str, done=bool, pk='id')\nTodo = todos.dataclass()\n\napp, rt = fast_app(live=False)\n\n@rt('/')\ndef get():\n    items = [Li(f\"{'\\u2713' if t.done else '\\u25cb'} {t.title}\", id=f'todo-{t.id}') for t in todos()]\n    return Titled('Todos',\n        Ul(*items),\n        Form(Input(name='title', placeholder='New todo...'), Button('Add'), action='/add', method='post'))\n\n@rt('/add', methods=['post'])\ndef post(title: str):\n    todos.insert(Todo(title=title, done=False))\n    return Redirect('/')\n\n@rt('/api/todos')\ndef api(): return [dict(id=t.id, title=t.title, done=t.done) for t in todos()]\n\nserve(host='0.0.0.0', port=5001)\n''')\n(app_dir / 'requirements.txt').write_text('python-fasthtml\\n')\n\n# Generate the stack with modular API\nDUCKDNS_SUBDOMAIN = 'angalama'\nDUCKDNS_TOKEN = '2d150216-df4d-4ba5-8c74-d519226ed65f'\ndomain = f'{DUCKDNS_SUBDOMAIN}.duckdns.org'\n\nappfile(port=5001).save(app_dir / 'Dockerfile')\n\ndc = (Compose()\n    .svc('app', build='.', networks=['web'], restart='unless-stopped')\n    .svc('swag', **swag(domain, port=5001, conf_path=app_dir/'proxy.conf',\n                        subdomains='', validation='duckdns', DUCKDNSTOKEN=DUCKDNS_TOKEN))\n    .network('web').volume('swag_config'))\ndc.save(str(app_dir / 'docker-compose.yml'))\n\nprint(dc)\nprint(f'\\nGenerated files: {os.listdir(app_dir)}')\n\nservices:\n  app:\n    build: .\n    networks:\n    - web\n    restart: unless-stopped\n  swag:\n    image: lscr.io/linuxserver/swag\n    depends_on:\n    - app\n    ports:\n    - 443:443\n    - 80:80\n    environment:\n    - PUID=1000\n    - PGID=1000\n    - TZ=Etc/UTC\n    - URL=angalama.duckdns.org\n    - SUBDOMAINS=\n    - VALIDATION=duckdns\n    - DUCKDNSTOKEN=2d150216-df4d-4ba5-8c74-d519226ed65f\n    volumes:\n    - swag_config:/config\n    - ./proxy.conf:/config/nginx/site-confs/proxy.conf\n    networks:\n    - web\n    cap_add:\n    - NET_ADMIN\n    restart: unless-stopped\nnetworks:\n  web: null\nvolumes:\n  swag_config: null\n\n\nGenerated files: ['Dockerfile', 'requirements.txt', 'main.py', 'docker-compose.yml', 'proxy.conf']\n\n\n\n# To start: cd into app_dir and run docker compose up\n\n\nwith working_directory(app_dir) as w: dc.up()  # or: run('docker', 'compose', '-f', str(app_dir/'docker-compose.yml'), 'up', '-d')\n# Your app will be live at https://{DUCKDNS_SUBDOMAIN}.duckdns.org with auto-SSL!\n\n\n\nDeploying to AWS\nFor AWS ECS / Cloud Run / Azure Container Apps: no reverse proxy needed — use cloud-native load balancer + managed SSL. Just use appfile() and push to your registry.\n\n# For hyperscaler deployments, just use appfile() directly:\ndf = appfile(port=5001, volume=None)  # no volume needed for stateless containers\n\n# Build and push to ECR\n# df.build(tag='123456789.dkr.ecr.us-east-1.amazonaws.com/myapp:latest')\n# _docker('push', '123456789.dkr.ecr.us-east-1.amazonaws.com/myapp:latest')\nprint(df)\n\n\n\nLoading from an existing docker-compose.yml\nUse Compose.load() to read an existing file, then continue chaining.\n\nimport tempfile\ntmp = tempfile.mkdtemp()\npath = f'{tmp}/docker-compose.yml'\nPath(path).write_text(\"\"\"services:\n  web:\n    image: nginx\n    ports:\n      - \"80:80\"\n  db:\n    image: postgres:15\n    environment:\n      - POSTGRES_PASSWORD=secret\nnetworks:\n  backend:\nvolumes:\n  pgdata:\n\"\"\")\n\ndc = Compose.load(path)\nd = dc.to_dict()\nassert 'web' in d['services']\nassert d['services']['web']['image'] == 'nginx'\nassert 'networks' in d\nassert 'volumes' in d\n\n# Chain after loading\ndc2 = dc.svc('redis', image='redis:alpine')\nassert len(dc2.to_dict()['services']) == 3\nprint(dc)\n\nservices:\n  web:\n    image: nginx\n    ports:\n    - 80:80\n  db:\n    image: postgres:15\n    environment:\n    - POSTGRES_PASSWORD=secret\nnetworks:\n  backend: null\nvolumes:\n  pgdata: null\n\n\n\n\n\nExample: Production stack (multi-stage build + SWAG + Cloudflare)\nA realistic production setup inspired by real FastHTML deployments: multi-stage Dockerfile with uv, COPY --link, apt packages, and a healthcheck — plus a Compose stack with SWAG (Cloudflare DNS + cloudflared tunnel), container_name, extra_hosts, env_file, and read-only host-path volumes.\n\n# -- Multi-stage Dockerfile with uv, COPY --link, healthcheck --\ndf = (Dockerfile()\n    # Stage 1: dependency builder\n    .from_('python', '3.12-slim', as_='builder')\n    .run('pip install uv')\n    .workdir('/app')\n    .copy('pyproject.toml', '.', link=True)\n    .copy('uv.lock', '.', link=True)\n    .run('uv export --no-hashes -o requirements.txt && pip install --no-cache-dir -r requirements.txt')\n    # Stage 2: runtime\n    .from_('python', '3.12-slim')\n    .apt_install('curl', 'sqlite3', y=True)\n    .copy('/usr/local/lib/python3.12/site-packages', '/usr/local/lib/python3.12/site-packages', from_='builder', link=True)\n    .workdir('/app')\n    .copy('.', '.', link=True)\n    .expose(5001)\n    .healthcheck('curl -f http://localhost:5001/ || exit 1', i='30s', t='10s', r='3')\n    .cmd(['python', 'main.py']))\n\ns = str(df)\nassert 'FROM python:3.12-slim AS builder' in s\nassert 'COPY --link pyproject.toml .' in s\nassert 'COPY --from=builder --link /usr/local/lib' in s\nassert '--interval=30s --timeout=10s --retries=3' in s\nprint(df)\n\n# -- Compose: app + SWAG with cloudflared, container_name, extra_hosts, env_file --\ndc = (Compose()\n    .svc('app',\n         build='.',\n         container_name='myapp',\n         networks=['web'],\n         extra_hosts=['host.docker.internal:host-gateway'],\n         env_file=['.env'],\n         volumes={'app_data': '/app/data', './config.yml': '/app/config.yml:ro'},\n         restart='unless-stopped')\n    .svc('swag', **swag('myapp.example.com', cloudflared=True, mods=['crowdsec'],\n                         DNSPLUGIN='cloudflare'))\n    .network('web')\n    .volume('swag_config')\n    .volume('app_data'))\n\nd = dc.to_dict()\nassert d['services']['app']['container_name'] == 'myapp'\nassert d['services']['app']['extra_hosts'] == ['host.docker.internal:host-gateway']\nassert d['services']['app']['env_file'] == ['.env']\nassert './config.yml:/app/config.yml:ro' in d['services']['app']['volumes']\nassert 'ports' not in d['services']['swag']  # cloudflared = no exposed ports\nassert 'crowdsec' in d['services']['swag']['environment'][-1]  # DOCKER_MODS\nprint('\\n---\\n')\nprint(dc)",
+    "crumbs": [
+      "compose"
+    ]
+  },
+  {
+    "objectID": "multipass.html",
+    "href": "multipass.html",
+    "title": "multipass",
+    "section": "",
+    "text": "callmultipass() mirrors calldocker() — runs the multipass CLI and returns stdout. Multipass uses the same kwargs-to-flags convention as Docker.\n\nsource\n\n\n\ndef Multipass(\n    args:VAR_POSITIONAL, kwargs:VAR_KEYWORD\n):\n\nWrap multipass CLI: getattr dispatches subcommands, kwargs become flags\n\nsource\n\n\n\n\ndef callmultipass(\n    args:VAR_POSITIONAL\n):\n\nRun a multipass CLI command, return stdout.",
+    "crumbs": [
+      "multipass"
+    ]
+  },
+  {
+    "objectID": "multipass.html#cli-wrapper",
+    "href": "multipass.html#cli-wrapper",
+    "title": "multipass",
+    "section": "",
+    "text": "callmultipass() mirrors calldocker() — runs the multipass CLI and returns stdout. Multipass uses the same kwargs-to-flags convention as Docker.\n\nsource\n\n\n\ndef Multipass(\n    args:VAR_POSITIONAL, kwargs:VAR_KEYWORD\n):\n\nWrap multipass CLI: getattr dispatches subcommands, kwargs become flags\n\nsource\n\n\n\n\ndef callmultipass(\n    args:VAR_POSITIONAL\n):\n\nRun a multipass CLI command, return stdout.",
+    "crumbs": [
+      "multipass"
+    ]
+  },
+  {
+    "objectID": "multipass.html#cloud_init_yaml",
+    "href": "multipass.html#cloud_init_yaml",
+    "title": "multipass",
+    "section": "cloud_init_yaml",
+    "text": "cloud_init_yaml\nGenerates a #cloud-config YAML string for Multipass --cloud-init. When docker=True (default) it installs Docker via get.docker.com.\n\nsource\n\ncloud_init_yaml\n\ndef cloud_init_yaml(\n    docker:bool=True, packages:NoneType=None, cmds:NoneType=None\n)-&gt;str:\n\nGenerate cloud-init YAML for a Multipass VM\n\ninit = cloud_init_yaml()\nassert '#cloud-config' in init\nassert 'get.docker.com' in init\nassert 'usermod' in init\nprint('cloud_init_yaml() default OK')\n\ninit2 = cloud_init_yaml(docker=False, packages=['git', 'vim'], cmds=['echo hello'])\nassert 'get.docker.com' not in init2\nassert '  - git' in init2\nassert 'echo hello' in init2\nprint('cloud_init_yaml() custom OK')\n\nprint(init)",
+    "crumbs": [
+      "multipass"
+    ]
+  },
+  {
+    "objectID": "multipass.html#vm-helpers",
+    "href": "multipass.html#vm-helpers",
+    "title": "multipass",
+    "section": "VM helpers",
+    "text": "VM helpers\n\nsource\n\nlaunch\n\ndef launch(\n    name, image:str='22.04', cpus:int=1, memory:str='1G', disk:str='10G', cloud_init:NoneType=None,\n    mounts:NoneType=None\n):\n\nLaunch a Multipass VM. cloud_init can be YAML string or path to existing file.\n\nsource\n\n\ntransfer\n\ndef transfer(\n    src, dst\n)-&gt;None:\n\nTransfer files to/from a Multipass VM. Use “vmname:/path” for VM paths.\n\nsource\n\n\ndelete\n\ndef delete(\n    name, purge:bool=True\n)-&gt;None:\n\nDelete a Multipass VM.\n\nsource\n\n\nexec_\n\ndef exec_(\n    name, cmd:VAR_POSITIONAL\n)-&gt;str:\n\nRun a command in a Multipass VM.\n\nsource\n\n\nvm_ip\n\ndef vm_ip(\n    name\n)-&gt;str:\n\nGet the IPv4 address of a Multipass VM.\n\nsource\n\n\nvms\n\ndef vms(\n    running:bool=False\n)-&gt;list:\n\nList Multipass VM names. running=True filters to Running state.\n\n# Test vms() - runs without error\ntry:\n    result = vms()\n    assert isinstance(result, list)\n    print(f'vms() OK: {result}')\nexcept Exception as e:\n    print(f'multipass not available: {e}')\n\n# Test vm_ip() error path on a non-existent VM\ntry: vm_ip('nonexistent-vm-dockr-test')\nexcept subprocess.CalledProcessError: print('vm_ip() error path OK')\nexcept Exception as e: print(f'Other error (multipass not installed?): {e}')\n\n\nsource\n\n\nlaunch_docker_vm\n\ndef launch_docker_vm(\n    name, image:str='22.04', cpus:int=2, memory:str='2G', disk:str='20G', packages:NoneType=None,\n    mounts:NoneType=None\n)-&gt;str:\n\nLaunch a Multipass VM with Docker pre-installed. Convenience wrapper for cloud_init_yaml + launch.",
+    "crumbs": [
+      "multipass"
+    ]
+  },
+  {
+    "objectID": "apps.html",
+    "href": "apps.html",
+    "title": "apps",
+    "section": "",
+    "text": "python_app() is the foundation — a single-stage Python Dockerfile with optional uv support. All higher-level helpers (fasthtml_app) delegate to it.\n\nsource\n\n\n\ndef python_app(\n    port:int=8000, cmd:NoneType=None, image:str='python:3.12-slim', workdir:str='/app', pkgs:NoneType=None,\n    volumes:NoneType=None, uv:bool=True, healthcheck:NoneType=None\n):\n\nSingle-stage Python app Dockerfile. uv=True (default) uses uv for fast installs.\n\n# Defaults: uv, port 8000\ndf = python_app()\ns = str(df)\nassert 'FROM python:3.12-slim' in s\nassert 'COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv' in s\nassert 'RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev' in s\nassert 'COPY . .' in s\nassert 'EXPOSE 8000' in s\nassert 'CMD [\"python\", \"main.py\"]' in s\nassert 'VOLUME' not in s\nprint('python_app() defaults OK'); print(df)\n\n\n# With pip, apt packages, volumes, healthcheck\ndf = python_app(port=5001, uv=False,\n    pkgs=['libpq-dev', 'curl'],\n    volumes=['/app/data', '/app/uploads'],\n    healthcheck='/health')\ns = str(df)\nassert 'apt-get install -y libpq-dev curl' in s\nassert 'requirements.txt' in s\nassert 'mkdir -p /app/data' in s\nassert 'mkdir -p /app/uploads' in s\nassert 'HEALTHCHECK' in s\nassert 'VOLUME' not in s\nprint('python_app() pip+pkgs+volumes+healthcheck OK')",
+    "crumbs": [
+      "apps"
+    ]
+  },
+  {
+    "objectID": "apps.html#python-apps",
+    "href": "apps.html#python-apps",
+    "title": "apps",
+    "section": "",
+    "text": "python_app() is the foundation — a single-stage Python Dockerfile with optional uv support. All higher-level helpers (fasthtml_app) delegate to it.\n\nsource\n\n\n\ndef python_app(\n    port:int=8000, cmd:NoneType=None, image:str='python:3.12-slim', workdir:str='/app', pkgs:NoneType=None,\n    volumes:NoneType=None, uv:bool=True, healthcheck:NoneType=None\n):\n\nSingle-stage Python app Dockerfile. uv=True (default) uses uv for fast installs.\n\n# Defaults: uv, port 8000\ndf = python_app()\ns = str(df)\nassert 'FROM python:3.12-slim' in s\nassert 'COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv' in s\nassert 'RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev' in s\nassert 'COPY . .' in s\nassert 'EXPOSE 8000' in s\nassert 'CMD [\"python\", \"main.py\"]' in s\nassert 'VOLUME' not in s\nprint('python_app() defaults OK'); print(df)\n\n\n# With pip, apt packages, volumes, healthcheck\ndf = python_app(port=5001, uv=False,\n    pkgs=['libpq-dev', 'curl'],\n    volumes=['/app/data', '/app/uploads'],\n    healthcheck='/health')\ns = str(df)\nassert 'apt-get install -y libpq-dev curl' in s\nassert 'requirements.txt' in s\nassert 'mkdir -p /app/data' in s\nassert 'mkdir -p /app/uploads' in s\nassert 'HEALTHCHECK' in s\nassert 'VOLUME' not in s\nprint('python_app() pip+pkgs+volumes+healthcheck OK')",
+    "crumbs": [
+      "apps"
+    ]
+  },
+  {
+    "objectID": "apps.html#fasthtml-fastapi",
+    "href": "apps.html#fasthtml-fastapi",
+    "title": "apps",
+    "section": "FastHTML / FastAPI",
+    "text": "FastHTML / FastAPI\nfasthtml_app() is a thin wrapper around python_app() with sensible FastHTML defaults: port 5001, uv, python main.py.\n\nsource\n\nfasthtml_app\n\ndef fasthtml_app(\n    port:int=5001, cmd:NoneType=None, image:str='python:3.12-slim', pkgs:NoneType=None, volumes:NoneType=None,\n    healthcheck:NoneType=None\n):\n\nFastHTML/FastAPI single-stage Dockerfile with uv\n\ndf = fasthtml_app(port=5001)\ns = str(df)\nassert 'EXPOSE 5001' in s\nassert 'ghcr.io/astral-sh/uv:latest' in s\nassert 'CMD [\"python\", \"main.py\"]' in s\nprint('fasthtml_app() OK'); print(df)\n\n\n# With extra apt packages and mounted data volume\ndf = fasthtml_app(\n    port=5001,\n    pkgs=['ca-certificates', 'rclone'],\n    volumes=['/app/data'],\n    healthcheck='/health')\ns = str(df)\nassert 'rclone' in s\nassert 'mkdir -p /app/data' in s\nassert 'HEALTHCHECK' in s\nprint('fasthtml_app() with pkgs+volumes+healthcheck OK')",
+    "crumbs": [
+      "apps"
+    ]
+  },
+  {
+    "objectID": "apps.html#fastapi-react-two-stage",
+    "href": "apps.html#fastapi-react-two-stage",
+    "title": "apps",
+    "section": "FastAPI + React (two-stage)",
+    "text": "FastAPI + React (two-stage)\nfastapi_react() builds a two-stage image: Node.js frontend build → Python backend. The compiled frontend assets are copied into /app/static for the Python server to serve.\n\nsource\n\nfastapi_react\n\ndef fastapi_react(\n    port:int=8000, node_version:str='20', frontend_dir:str='frontend', build_dir:str='dist',\n    image:str='python:3.12-slim', pkgs:NoneType=None, uv:bool=True, healthcheck:str='/health'\n):\n\nTwo-stage Dockerfile: Node.js frontend build + Python/FastAPI backend\n\ndf = fastapi_react(port=8000)\ns = str(df)\nassert 'FROM node:20-slim AS frontend' in s\nassert 'npm ci' in s\nassert 'npm run build' in s\nassert 'FROM python:3.12-slim' in s\nassert 'COPY --from=frontend /build/dist /app/static' in s\nassert 'uvicorn' in s\nprint('fastapi_react() OK'); print(df)",
+    "crumbs": [
+      "apps"
+    ]
+  },
+  {
+    "objectID": "apps.html#go",
+    "href": "apps.html#go",
+    "title": "apps",
+    "section": "Go",
+    "text": "Go\ngo_app() compiles a Go binary with go build and copies it into a minimal distroless/static image. Module downloads are cached with --mount=type=cache.\n\nsource\n\ngo_app\n\ndef go_app(\n    port:int=8080, go_version:str='1.22', binary:str='app', runtime:str='gcr.io/distroless/static',\n    cmd:NoneType=None, cgo:bool=False\n):\n\nTwo-stage Go Dockerfile: go compiler + go mod cache → distroless runtime\n\ndf = go_app(port=8080)\ns = str(df)\nassert 'FROM golang:1.22-alpine AS builder' in s\nassert 'RUN --mount=type=cache,target=/go/pkg/mod go mod download' in s\nassert 'ENV CGO_ENABLED=0' in s\nassert 'go build -ldflags' in s\nassert 'FROM gcr.io/distroless/static' in s\nassert 'COPY --from=builder /app /app' in s\nassert 'CMD [\"/app\"]' in s\nprint('go_app() OK'); print(df)",
+    "crumbs": [
+      "apps"
+    ]
+  },
+  {
+    "objectID": "apps.html#rust",
+    "href": "apps.html#rust",
+    "title": "apps",
+    "section": "Rust",
+    "text": "Rust\nrust_app() compiles a Rust binary in release mode and copies it into a minimal image. The cargo registry is cached with --mount=type=cache to avoid re-downloading crates.\n\nsource\n\nrust_app\n\ndef rust_app(\n    port:int=8080, rust_version:str='1', binary:str='app', runtime:str='gcr.io/distroless/static',\n    features:NoneType=None, release:bool=True\n):\n\nTwo-stage Rust Dockerfile: cargo build → distroless runtime\n\ndf = rust_app(port=8080)\ns = str(df)\nassert 'FROM rust:1-slim-bookworm AS builder' in s\nassert 'RUN --mount=type=cache,target=/usr/local/cargo/registry cargo build --release' in s\nassert 'FROM gcr.io/distroless/static' in s\nassert 'COPY --from=builder /src/target/release/app /app' in s\nassert 'CMD [\"/app\"]' in s\nprint('rust_app() OK'); print(df)\n\n\n# With features\ndf = rust_app(binary='myapp', features='postgres,redis')\ns = str(df)\nassert '--features postgres,redis' in s\nassert '/src/target/release/myapp' in s\nprint('rust_app() features OK')",
+    "crumbs": [
+      "apps"
+    ]
+  },
+  {
+    "objectID": "apps.html#vedicreader-example",
+    "href": "apps.html#vedicreader-example",
+    "title": "apps",
+    "section": "VedicReader example",
+    "text": "VedicReader example\nHow fasthtml_app() simplifies a real production Dockerfile. Credentials stay out of the image — they’re injected at runtime via environment variables or mounted config files.\n\ndf = fasthtml_app(\n    port=5001,\n    image='python:3.13-slim-bookworm',\n    pkgs=['ca-certificates', 'rclone', 'gettext-base', 'libsqlite3-dev'],\n    volumes=['/app/data', '/app/backups'],\n    healthcheck='/health')\ns = str(df)\nassert 'python:3.13-slim-bookworm' in s\nassert 'rclone' in s\nassert 'mkdir -p /app/data' in s\nassert 'HEALTHCHECK' in s\nprint('vedicreader-style fasthtml_app() OK'); print(df)",
+    "crumbs": [
+      "apps"
+    ]
+  },
+  {
+    "objectID": "vps.html",
+    "href": "vps.html",
+    "title": "vps",
+    "section": "",
+    "text": "vps_init() builds a cloud-init YAML string for a fresh VPS. It delegates to fastcloudinit.cloud_init_config which handles UFW (deny incoming, allow 22/80/443), user creation, and SSH key setup. Pass docker=True to install Docker via get.docker.com, and cf_token to install a Cloudflare tunnel.\n\nsource\n\n\n\ndef vps_init(\n    hostname, pub_keys, username:str='deploy', docker:bool=True, cf_token:NoneType=None, packages:NoneType=None,\n    cmds:NoneType=None, kw:VAR_KEYWORD\n):\n\nCloud-init YAML for a fresh VPS: user, UFW, optional Docker + Cloudflare tunnel\n\nyaml = vps_init('myserver', 'ssh-rsa AAAA...', docker=True)\nassert '#cloud-config' in yaml\nassert 'get.docker.com' in yaml\nassert 'deploy' in yaml\nprint('vps_init OK')\nprint(yaml[:400])",
+    "crumbs": [
+      "vps"
+    ]
+  },
+  {
+    "objectID": "vps.html#cloud-init-generation",
+    "href": "vps.html#cloud-init-generation",
+    "title": "vps",
+    "section": "",
+    "text": "vps_init() builds a cloud-init YAML string for a fresh VPS. It delegates to fastcloudinit.cloud_init_config which handles UFW (deny incoming, allow 22/80/443), user creation, and SSH key setup. Pass docker=True to install Docker via get.docker.com, and cf_token to install a Cloudflare tunnel.\n\nsource\n\n\n\ndef vps_init(\n    hostname, pub_keys, username:str='deploy', docker:bool=True, cf_token:NoneType=None, packages:NoneType=None,\n    cmds:NoneType=None, kw:VAR_KEYWORD\n):\n\nCloud-init YAML for a fresh VPS: user, UFW, optional Docker + Cloudflare tunnel\n\nyaml = vps_init('myserver', 'ssh-rsa AAAA...', docker=True)\nassert '#cloud-config' in yaml\nassert 'get.docker.com' in yaml\nassert 'deploy' in yaml\nprint('vps_init OK')\nprint(yaml[:400])",
+    "crumbs": [
+      "vps"
+    ]
+  },
+  {
+    "objectID": "vps.html#hetzner-hcloud-cli",
+    "href": "vps.html#hetzner-hcloud-cli",
+    "title": "vps",
+    "section": "Hetzner (hcloud CLI)",
+    "text": "Hetzner (hcloud CLI)\ncallhcloud() and Hcloud follow the same pattern as calldocker()/Docker and callmultipass()/Multipass — subprocess wrapper plus kwargs-to-flags dispatch.\n\nsource\n\nHcloud\n\ndef Hcloud(\n    args:VAR_POSITIONAL, kwargs:VAR_KEYWORD\n):\n\nWrap hcloud CLI: getattr dispatches subcommands, kwargs become flags\n\nsource\n\n\ncallhcloud\n\ndef callhcloud(\n    args:VAR_POSITIONAL\n):\n\nRun hcloud CLI command, return stdout.\n\nsource\n\n\nhcloud_auth\n\ndef hcloud_auth(\n    token, name:str='default'\n):\n\nConfigure hcloud CLI with token. Call once before using create/servers/etc.\n\nsource\n\n\ndelete\n\ndef delete(\n    name\n):\n\nDelete a Hetzner server by name\n\nsource\n\n\nserver_ip\n\ndef server_ip(\n    name\n)-&gt;str:\n\nGet public IPv4 of a Hetzner server\n\nsource\n\n\nservers\n\ndef servers(\n    \n):\n\nList Hetzner servers as [{name, ip, status}]\n\nsource\n\n\ncreate\n\ndef create(\n    name, image:str='ubuntu-24.04', server_type:str='cx22', location:NoneType=None, cloud_init:NoneType=None,\n    ssh_keys:NoneType=None\n):\n\nCreate a Hetzner server. cloud_init: YAML string or file path. Returns IP.",
+    "crumbs": [
+      "vps"
+    ]
+  },
+  {
+    "objectID": "vps.html#ssh-helpers",
+    "href": "vps.html#ssh-helpers",
+    "title": "vps",
+    "section": "SSH helpers",
+    "text": "SSH helpers\nPure subprocess-based SSH/rsync utilities — no paramiko dependency. deploy() syncs a Compose stack to a remote host and brings it up.\n\nsource\n\ndeploy\n\ndef deploy(\n    compose, host, user:str='deploy', key:NoneType=None, path:str='/srv/app', pull:bool=False\n):\n\nSync Compose stack to remote host and run docker compose up -d. Returns stdout.\n\nsource\n\n\nsync\n\ndef sync(\n    src, dst_path, host, user:str='deploy', key:NoneType=None, port:int=22\n):\n\nRsync local path to remote host:dst_path\n\nsource\n\n\nrun_ssh\n\ndef run_ssh(\n    host, cmds:VAR_POSITIONAL, user:str='deploy', key:NoneType=None, port:int=22\n):\n\nRun one or more commands on a remote host via SSH. Returns stdout.",
+    "crumbs": [
+      "vps"
+    ]
+  },
+  {
+    "objectID": "cloudflare.html",
+    "href": "cloudflare.html",
+    "title": "cloudflare",
+    "section": "",
+    "text": "Thin wrapper around the official cloudflare Python SDK. Token is read from the CLOUDFLARE_API_TOKEN environment variable by default.\n\nsource\n\n\n\ndef CF(\n    token:NoneType=None\n):\n\nCloudflare API wrapper using the official cloudflare Python SDK\n\n# Instantiation test: object created without raising when given a mock token\nimport os as _os\n\ncf = CF(token='fake-token-for-testing')\nassert cf._c is not None\nprint('CF instantiation OK')\n\n# Real API calls gated on CF_TEST=1\nif _os.environ.get('CF_TEST') == '1':\n    cf = CF()  # uses CLOUDFLARE_API_TOKEN from env\n    zs = cf.zones()\n    names = [z['name'] for z in zs]\n    print(f'zones: {names}')\n    print('CF.zones() OK')\nelse:\n    print('Skipping real API tests (set CF_TEST=1 to enable)')\n\nCF instantiation OK\nSkipping real API tests (set CF_TEST=1 to enable)\n\n\n\nsource\n\n\n\n\ndef dns_record(\n    domain, name, content, type:str='A', proxied:bool=False, token:NoneType=None\n)-&gt;dict:\n\nUpsert a DNS record. Reads CLOUDFLARE_API_TOKEN from env if token not given.",
+    "crumbs": [
+      "cloudflare"
+    ]
+  },
+  {
+    "objectID": "cloudflare.html#cf",
+    "href": "cloudflare.html#cf",
+    "title": "cloudflare",
+    "section": "",
+    "text": "Thin wrapper around the official cloudflare Python SDK. Token is read from the CLOUDFLARE_API_TOKEN environment variable by default.\n\nsource\n\n\n\ndef CF(\n    token:NoneType=None\n):\n\nCloudflare API wrapper using the official cloudflare Python SDK\n\n# Instantiation test: object created without raising when given a mock token\nimport os as _os\n\ncf = CF(token='fake-token-for-testing')\nassert cf._c is not None\nprint('CF instantiation OK')\n\n# Real API calls gated on CF_TEST=1\nif _os.environ.get('CF_TEST') == '1':\n    cf = CF()  # uses CLOUDFLARE_API_TOKEN from env\n    zs = cf.zones()\n    names = [z['name'] for z in zs]\n    print(f'zones: {names}')\n    print('CF.zones() OK')\nelse:\n    print('Skipping real API tests (set CF_TEST=1 to enable)')\n\nCF instantiation OK\nSkipping real API tests (set CF_TEST=1 to enable)\n\n\n\nsource\n\n\n\n\ndef dns_record(\n    domain, name, content, type:str='A', proxied:bool=False, token:NoneType=None\n)-&gt;dict:\n\nUpsert a DNS record. Reads CLOUDFLARE_API_TOKEN from env if token not given.",
+    "crumbs": [
+      "cloudflare"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "fastops",
+    "section": "",
+    "text": "pip install fastops\nRequires Python 3.10+ and a docker (or podman) CLI on your PATH.",
+    "crumbs": [
+      "fastops"
+    ]
+  },
+  {
+    "objectID": "index.html#install",
+    "href": "index.html#install",
+    "title": "fastops",
+    "section": "",
+    "text": "pip install fastops\nRequires Python 3.10+ and a docker (or podman) CLI on your PATH.",
+    "crumbs": [
+      "fastops"
+    ]
+  },
+  {
+    "objectID": "index.html#the-dockerfile-builder",
+    "href": "index.html#the-dockerfile-builder",
+    "title": "fastops",
+    "section": "The Dockerfile Builder",
+    "text": "The Dockerfile Builder\nDockerfile is an immutable, fluent builder — every method returns a new instance, so you can safely branch, compose, or pass it to functions.\n\nfrom fastops import Dockerfile\n\ndf = (Dockerfile()\n    .from_('python', '3.12-slim')\n    .workdir('/app')\n    .copy('requirements.txt', '.')\n    .run('pip install --no-cache-dir -r requirements.txt')\n    .copy('.', '.')\n    .expose(8080)\n    .cmd(['python', 'app.py']))\n\nprint(df)\n\n\nBatteries included: apt_install and a built-in escape hatch\napt_install(*pkgs, y=False) chains apt-get update && apt-get install for you. Any Dockerfile keyword not explicitly modelled is available via __getattr__ — just call it as a method.\n\ndf_ubuntu = (Dockerfile()\n    .from_('ubuntu', '22.04')\n    .apt_install('curl', 'git', y=True)\n    .run('pip install uv'))\n\n# Any unknown attribute becomes an instruction: df.KEYWORD(args)\ndf_scratch = (Dockerfile()\n    .from_('scratch')\n    .add('binary', '/binary')\n    .entrypoint(['/binary']))\n\nprint(df_ubuntu)\nprint()\nprint(df_scratch)\n\n\n\nMulti-stage builds\nChain multiple from_() calls — the builder handles stage aliases naturally.\n\ndf_ms = (Dockerfile()\n    .from_('golang:1.21', as_='builder')\n    .workdir('/src')\n    .copy('.', '.')\n    .run('go build -o /app')\n    .from_('alpine')\n    .copy('/app', '/app', from_='builder')\n    .cmd(['/app']))\n\nprint(df_ms)\n\nDockerfile.load(path) parses an existing file into the builder for further chaining. df.save(path) writes it back and returns the Path.",
+    "crumbs": [
+      "fastops"
+    ]
+  },
+  {
+    "objectID": "index.html#building-and-running-images",
+    "href": "index.html#building-and-running-images",
+    "title": "fastops",
+    "section": "Building and Running Images",
+    "text": "Building and Running Images\nThese helpers require a running Docker daemon. They wrap docker build, docker run, docker ps, etc. via subprocess.\nfrom fastops import Dockerfile, run, test, containers, images, stop, logs, rm, rmi\n\ndf = Dockerfile().from_('python', '3.12-slim').cmd(['python', '-c', 'print(\"hi\")'])\n\nimg = df.build(tag='myapp:latest')        # saves Dockerfile + runs docker build\nok  = test(img, 'python -c \"import os\"')   # True if exit code 0\ncid = run(img, detach=True, ports={8080: 8080}, name='myapp')\n\nprint(containers())    # ['myapp']\nprint(logs('myapp', n=5))\n\nstop('myapp'); rm('myapp'); rmi(img)\n\nRaw CLI access via dk\nFor anything not covered by helpers, dk (a Docker() singleton) dispatches any subcommand. kwargs become flags using the same convention: single-char k=v → -k v, multi-char key=v → --key=v.\n\nfrom fastops import dk\n\ntry:\n    print(dk.version())\nexcept Exception as e:\n    print(f'Docker not running: {e}')\n\n# Equivalent shell commands:\n# dk.ps(format='{{.Names}}', a=True)   → docker ps --format={{.Names}} -a\n# dk.image('prune', f=True)            → docker image prune -f\n# dk.build('.', t='myapp', rm=True)    → docker build . -t myapp --rm",
+    "crumbs": [
+      "fastops"
+    ]
+  },
+  {
+    "objectID": "index.html#docker-compose",
+    "href": "index.html#docker-compose",
+    "title": "fastops",
+    "section": "Docker Compose",
+    "text": "Docker Compose\nCompose is a fluent builder for docker-compose.yml. Chain .svc(), .network(), .volume(), then .save() to write or .up() to write and start.\n\nfrom fastops import Compose\n\ndc = (Compose()\n    .svc('db',\n         image='postgres:16',\n         env={'POSTGRES_PASSWORD': 'secret'},\n         volumes={'pgdata': '/var/lib/postgresql/data'})\n    .svc('redis', image='redis:7-alpine')\n    .svc('app',\n         build='.',\n         ports={8080: 8080},\n         env={'DATABASE_URL': 'postgresql://postgres:secret@db/app'},\n         depends_on=['db', 'redis'],\n         networks=['web'])\n    .network('web')\n    .volume('pgdata'))\n\nprint(dc)\n\n\nappfile() — standard Python webapp Dockerfile\nA one-liner for the most common Dockerfile pattern: copy requirements, pip install, copy source, expose port, run main.py.\n\nfrom fastops import appfile\n\nprint(appfile(port=8080, image='python:3.12-slim'))\n\nUse Compose.load(path) to round-trip an existing docker-compose.yml. DockerCompose(path) wraps the CLI for running compose commands against any file.",
+    "crumbs": [
+      "fastops"
+    ]
+  },
+  {
+    "objectID": "index.html#reverse-proxying-with-caddy",
+    "href": "index.html#reverse-proxying-with-caddy",
+    "title": "fastops",
+    "section": "Reverse Proxying with Caddy",
+    "text": "Reverse Proxying with Caddy\nThe caddy module generates a Caddyfile and returns service kwargs for Compose.svc(). Four topologies are supported, from simplest to most secure.\n\nPlain Caddy — auto-TLS, ports 80 and 443\n\nfrom fastops import caddyfile, caddy\nimport tempfile\n\n# What the Caddyfile looks like:\nprint(caddyfile('myapp.example.com', port=8080))\n\n\nwith tempfile.TemporaryDirectory() as tmp:\n    dc = (Compose()\n        .svc('app', build='.', networks=['web'])\n        .svc('caddy', **caddy('myapp.example.com', port=8080,\n                              conf=f'{tmp}/Caddyfile'))\n        .network('web')\n        .volume('caddy_data').volume('caddy_config'))\n    print(dc)\n\n\n\nDNS-01 challenge — no port 80 required\nPass dns='cloudflare' or dns='duckdns' to use DNS-01 ACME. This lets you get TLS certs on machines that have port 80 blocked.\n\nprint(caddyfile('myapp.example.com', port=8080, dns='cloudflare', email='me@example.com'))\n\n\n\nCloudflare tunnel — zero open ports\nWith cloudflared=True, Caddy listens on plain HTTP and cloudflared tunnels traffic in. No ports need to be open on the host at all.\n\nfrom fastops import cloudflared_svc\n\nwith tempfile.TemporaryDirectory() as tmp:\n    dc = (Compose()\n        .svc('app', build='.', networks=['web'])\n        .svc('caddy', **caddy('myapp.example.com', port=8080,\n                              cloudflared=True, conf=f'{tmp}/Caddyfile'))\n        .svc('cloudflared', **cloudflared_svc(), networks=['web'])\n        .network('web')\n        .volume('caddy_data').volume('caddy_config'))\n    print(dc)\n\n\n\nFull security stack — CrowdSec + Cloudflare tunnel\nAdd crowdsec=True to wire in the CrowdSec intrusion-detection bouncer. The image is selected automatically based on the combination of crowdsec and dns.\n\nfrom fastops import crowdsec\n\nwith tempfile.TemporaryDirectory() as tmp:\n    dc = (Compose()\n        .svc('app', build='.', networks=['web'])\n        .svc('caddy', **caddy('myapp.example.com', port=8080,\n                              crowdsec=True, cloudflared=True,\n                              conf=f'{tmp}/Caddyfile'))\n        .svc('crowdsec', **crowdsec())\n        .svc('cloudflared', **cloudflared_svc(), networks=['web'])\n        .network('web')\n        .volume('caddy_data').volume('caddy_config')\n        .volume('crowdsec-db').volume('crowdsec-config'))\n    print(dc)\n\n\n\nCaddy image selection\n\n\n\ncrowdsec\ndns\nImage\n\n\n\n\nFalse\nNone\ncaddy:2\n\n\nTrue\nNone\nserfriz/caddy-crowdsec:latest\n\n\nFalse\n'cloudflare'\nserfriz/caddy-cloudflare:latest\n\n\nTrue\n'cloudflare'\nghcr.io/buildplan/csdp-caddy:latest\n\n\nFalse\n'duckdns'\nserfriz/caddy-duckdns:latest",
+    "crumbs": [
+      "fastops"
+    ]
+  },
+  {
+    "objectID": "index.html#swag-nginx-alternative",
+    "href": "index.html#swag-nginx-alternative",
+    "title": "fastops",
+    "section": "SWAG (nginx alternative)",
+    "text": "SWAG (nginx alternative)\nIf you prefer LinuxServer SWAG (nginx + Certbot), use swag(). It generates an nginx site-conf and returns service kwargs for Compose.svc().\n\nfrom fastops import swag, swag_conf\n\n# nginx site-conf for proxying to app:8080\nprint(swag_conf('myapp.example.com', port=8080))\n\n\nwith tempfile.TemporaryDirectory() as tmp:\n    dc = (Compose()\n        .svc('app', build='.', networks=['web'])\n        .svc('swag', **swag('myapp.example.com', port=8080,\n                            conf_path=f'{tmp}/proxy.conf'))\n        .network('web')\n        .volume('swag_config'))\n    print(dc)",
+    "crumbs": [
+      "fastops"
+    ]
+  },
+  {
+    "objectID": "index.html#local-linux-vms-with-multipass",
+    "href": "index.html#local-linux-vms-with-multipass",
+    "title": "fastops",
+    "section": "Local Linux VMs with Multipass",
+    "text": "Local Linux VMs with Multipass\nThe multipass module wraps the Multipass CLI for spinning up ephemeral Ubuntu VMs. Ideal for testing deployment scripts locally — no cloud account needed.\n\ncloud_init_yaml — VM bootstrap config\n\nfrom fastops import cloud_init_yaml\n\n# Default: Docker pre-installed\nprint(cloud_init_yaml(docker=True, packages=['htop', 'tree']))\n\n\n\nlaunch_docker_vm — the one-liner\nlaunch_docker_vm() is the convenience wrapper that pairs cloud_init_yaml with launch. It covers the most common use case: spin up a clean Ubuntu VM with Docker ready to go.\nfrom fastops import launch_docker_vm, vm_ip, exec_, transfer, delete, vms\n\n# Spin up an Ubuntu VM with Docker pre-installed (takes ~60s first run)\nvm = launch_docker_vm('test-vm', cpus=2, memory='2G')\n\nprint(vms(running=True))             # ['test-vm']\nprint(vm_ip('test-vm'))              # '192.168.64.5'\n\nexec_('test-vm', 'docker', 'ps')    # run any command in the VM\ntransfer('./docker-compose.yml',\n         'test-vm:/home/ubuntu/docker-compose.yml')  # copy files\n\ndelete('test-vm')                    # purge when done\nlaunch() accepts cloud_init as either a YAML string or a path to an existing file — if it’s a string it writes a temp file, passes --cloud-init, and cleans up automatically.\nFor raw CLI access use the mp singleton (same pattern as dk):\nfrom fastops import mp\nmp.info(\"test-vm\")            # → multipass info test-vm\nmp.snapshot(\"test-vm\", name=\"before-deploy\")",
+    "crumbs": [
+      "fastops"
+    ]
+  },
+  {
+    "objectID": "index.html#cloudflare-dns-and-tunnels",
+    "href": "index.html#cloudflare-dns-and-tunnels",
+    "title": "fastops",
+    "section": "Cloudflare DNS and Tunnels",
+    "text": "Cloudflare DNS and Tunnels\nThe cloudflare module wraps the official Cloudflare Python SDK for managing DNS records and Zero Trust tunnels. Set CLOUDFLARE_API_TOKEN in your environment.\npip install \"fastops[cloudflare]\"\n# or: pip install cloudflare\n\ndns_record — the one-liner\ndns_record() is the convenience wrapper: reads CLOUDFLARE_API_TOKEN from env, looks up the zone, deletes any existing record with the same name and type, then creates the new one.\nfrom fastops import dns_record, CF\n\n# Point myapp.example.com at a server IP\nrecord = dns_record('example.com', 'myapp', '1.2.3.4', proxied=True)\n\n# Full control via CF() for multi-step workflows\ncf = CF()  # reads CLOUDFLARE_API_TOKEN\n\n# DNS\nzid = cf.zone_id('example.com')\nrecords = cf.dns_records(zid)\ncf.delete_record(zid, records[0]['id'])\n\n# Tunnels\ntunnel = cf.create_tunnel('myapp-prod')\ntoken  = cf.tunnel_token(tunnel['id'])\n# → pass token as CF_TUNNEL_TOKEN in your environment",
+    "crumbs": [
+      "fastops"
+    ]
+  },
+  {
+    "objectID": "index.html#app-dockerfiles",
+    "href": "index.html#app-dockerfiles",
+    "title": "fastops",
+    "section": "App Dockerfiles",
+    "text": "App Dockerfiles\nThe apps module generates complete, production-ready Dockerfiles for common stacks. All variants support uv-based installs, extra apt packages, and optional healthchecks.\n\nPython / FastHTML\n\nfrom fastops import python_app, fasthtml_app\n\n# Generic single-stage Python app\nprint(python_app(port=8080, cmd=['uvicorn', 'main:app', '--host', '0.0.0.0']))\n\n\n# FastHTML shortcut: uv + port 5001 + sensible defaults\nprint(fasthtml_app(port=5001, pkgs=['rclone'], volumes=['/app/data']))\n\n\n\nFastAPI + React (two-stage)\n\nfrom fastops import fastapi_react\n\n# Stage 1: Node builds the frontend; Stage 2: Python serves the API\nprint(fastapi_react(port=8000, frontend_dir='frontend'))\n\n\n\nGo and Rust (two-stage → distroless)\n\nfrom fastops import go_app, rust_app\n\nprint(go_app(port=8080, go_version='1.22'))\nprint()\nprint(rust_app(port=8080, binary='myapp'))\n\n\n\nCache mounts for faster rebuilds\nrun_mount() adds RUN --mount=type=cache,... to any instruction, keeping pip/uv/cargo/go caches across builds:\ndf = (Dockerfile().from_('python:3.12-slim')\n    .run_mount('uv sync --frozen --no-dev', target='/root/.cache/uv')\n    .run_mount('go mod download',           target='/go/pkg/mod'))",
+    "crumbs": [
+      "fastops"
+    ]
+  },
+  {
+    "objectID": "index.html#vps-provisioning",
+    "href": "index.html#vps-provisioning",
+    "title": "fastops",
+    "section": "VPS Provisioning",
+    "text": "VPS Provisioning\nThe vps module covers the full lifecycle from a blank cloud server to a running Compose stack: cloud-init generation, Hetzner provisioning, and SSH-based deployment. No cloud SDK required beyond the hcloud CLI and ssh/rsync.\n\nvps_init — cloud-init YAML\n\nfrom fastops import vps_init\n\n# Full bootstrap: UFW, deploy user, Docker, Cloudflare tunnel\nyaml = vps_init(\n    'prod-01',\n    pub_keys='ssh-rsa AAAA...',\n    docker=True,\n    packages=['git', 'htop'],\n)\nprint(yaml[:500])\n\n\n\nHetzner provisioning\ncreate() wraps hcloud server create. Pass the cloud-init YAML string directly — it handles the temp-file lifecycle automatically.\nfrom fastops import create, servers, server_ip, delete\n\nip = create(\n    'prod-01',\n    image='ubuntu-24.04',\n    server_type='cx22',\n    location='nbg1',\n    cloud_init=yaml,\n    ssh_keys=['my-laptop'],\n)\nprint(servers())   # [{'name': 'prod-01', 'ip': '...', 'status': 'running'}]\nRequires hcloud CLI and HCLOUD_TOKEN in env.\n\n\ndeploy — sync and start\ndeploy() accepts a Compose object or a raw YAML string, rsyncs it to the server, and runs docker compose up -d:\nfrom fastops import deploy\n\ndeploy(dc, ip, user='deploy', key='~/.ssh/id_ed25519', path='/srv/myapp')\n# 1. mkdir -p /srv/myapp  (via SSH)\n# 2. rsync docker-compose.yml → prod-01:/srv/myapp/\n# 3. docker compose up -d  (via SSH)\nFor one-off commands use run_ssh():\nfrom fastops import run_ssh\n\nprint(run_ssh(ip, 'docker ps', user='deploy', key='~/.ssh/id_ed25519'))",
+    "crumbs": [
+      "fastops"
+    ]
+  },
+  {
+    "objectID": "index.html#end-to-end-deploy-a-python-app",
+    "href": "index.html#end-to-end-deploy-a-python-app",
+    "title": "fastops",
+    "section": "End-to-End: Deploy a Python App",
+    "text": "End-to-End: Deploy a Python App\nHere is the complete workflow for deploying a Python webapp with Caddy TLS, a Cloudflare tunnel, and CrowdSec — starting from a blank Python file.\nStep 1: generate the configs (pure Python, no daemon needed)\n\nfrom fastops import Dockerfile\nfrom fastops import Compose, appfile\nfrom fastops import caddy, cloudflared_svc, crowdsec\nimport tempfile\n\nDOMAIN = 'myapp.example.com'\nPORT   = 8080\n\n# Standard Python app Dockerfile\ndf = appfile(port=PORT)\n\nwith tempfile.TemporaryDirectory() as tmp:\n    dc = (Compose()\n        .svc('app',         build='.',  networks=['web'])\n        .svc('caddy',       **caddy(DOMAIN, port=PORT,\n                                   crowdsec=True, cloudflared=True,\n                                   conf=f'{tmp}/Caddyfile'))\n        .svc('crowdsec',    **crowdsec())\n        .svc('cloudflared', **cloudflared_svc(), networks=['web'])\n        .network('web')\n        .volume('caddy_data').volume('caddy_config')\n        .volume('crowdsec-db').volume('crowdsec-config'))\n\n    print('--- Dockerfile ---')\n    print(df)\n    print('\\n--- docker-compose.yml ---')\n    print(dc)\n\nStep 2: save and deploy (requires Docker daemon)\ndf.save('Dockerfile')\ndc.save('docker-compose.yml')\ndc.up()  # writes file + runs docker compose up -d\nStep 3: wire up DNS (requires CLOUDFLARE_API_TOKEN)\nfrom fastops import dns_record\n\ndns_record('example.com', 'myapp', '1.2.3.4', proxied=True)\nStep 4: test locally first (requires Multipass)\nfrom fastops import launch_docker_vm, vm_ip, exec_, transfer, delete\nfrom fastops import dns_record\n\nvm = launch_docker_vm('test-vm')\ntransfer('./docker-compose.yml', 'test-vm:/home/ubuntu/')\nexec_('test-vm', 'docker', 'compose', 'up', '-d')\n\nip = vm_ip('test-vm')\ndns_record('example.com', 'myapp', ip)  # point DNS at the VM\n\ndelete('test-vm')  # clean up\nStep 5: provision and deploy to a real server (requires hcloud CLI + HCLOUD_TOKEN)\nfrom fastops import vps_init, create, deploy\nfrom fastops import dns_record\n\n# Bootstrap a fresh Hetzner server\nyaml = vps_init('prod-01', pub_keys=open('~/.ssh/id_ed25519.pub').read(),\n                docker=True)\nip = create('prod-01', server_type='cx22', location='nbg1',\n            cloud_init=yaml, ssh_keys=['my-laptop'])\n\n# Point DNS at it\ndns_record('example.com', 'myapp', ip, proxied=True)\n\n# Sync Compose stack and start\ndeploy(dc, ip, key='~/.ssh/id_ed25519', path='/srv/myapp')",
+    "crumbs": [
+      "fastops"
+    ]
+  },
+  {
+    "objectID": "index.html#podman-support",
+    "href": "index.html#podman-support",
+    "title": "fastops",
+    "section": "Podman Support",
+    "text": "Podman Support\nSet DOCKR_RUNTIME=podman to switch all CLI calls to podman. The generated Dockerfiles and Compose YAML are runtime-agnostic.\nexport DOCKR_RUNTIME=podman\nCredential-stripping (_clean_cfg()) is skipped automatically for non-docker runtimes.",
+    "crumbs": [
+      "fastops"
+    ]
+  },
+  {
+    "objectID": "core.html",
+    "href": "core.html",
+    "title": "core",
+    "section": "",
+    "text": "instr creates a Dockerfile instruction string from a keyword and value. Factory functions (from_, run_, cmd_, etc.) wrap instr for each Dockerfile keyword, handling formatting details like tag joining, JSON exec form, and multi-command chaining.\n\nassert _instr('RUN', 'echo hello') == 'RUN echo hello'\n\n\n\nEach function maps to a Dockerfile keyword with a trailing _ to avoid clashing with Python builtins.\n\nassert _from('python', '3.11') == 'FROM python:3.11'\nassert _from('ubuntu', as_='builder') == 'FROM ubuntu AS builder'\nassert _from('alpine') == 'FROM alpine'\n\n\nassert _run('apt-get update') == 'RUN apt-get update'\nr = _run(['apt-get update', 'apt-get install -y curl'])\nassert 'apt-get update && ' in r\nassert 'apt-get install -y curl' in r\n\n\nassert _apt_install('curl', 'wget', y=True) == 'RUN apt-get update && apt-get install -y curl wget'\nassert _apt_install('git') == 'RUN apt-get update && apt-get install git'\n\n\nassert _cmd(['python', 'app.py']) == 'CMD [\"python\", \"app.py\"]'\nassert _cmd('echo hello') == 'CMD echo hello'\n\n\nassert _copy('.', '/app') == 'COPY . /app'\nassert _copy('/build/out', '/app', from_='builder') == 'COPY --from=builder /build/out /app'\nassert _copy('app/', '.', link=True) == 'COPY --link app/ .'\nassert _copy('/app', '/app', from_='builder', link=True) == 'COPY --from=builder --link /app /app'\n\n\nassert _workdir('/app') == 'WORKDIR /app'\n\n\nassert _env('PATH', '/usr/local/bin') == 'ENV PATH=/usr/local/bin'\nassert _env('DEBIAN_FRONTEND=noninteractive') == 'ENV DEBIAN_FRONTEND=noninteractive'\n\n\nassert _expose(8080) == 'EXPOSE 8080'\n\n\nassert _entrypoint(['python', '-m', 'flask']) == 'ENTRYPOINT [\"python\", \"-m\", \"flask\"]'\n\n\nassert _arg('VERSION', '1.0') == 'ARG VERSION=1.0'\nassert _arg('VERSION') == 'ARG VERSION'\n\n\nassert _label(version='1.0', maintainer='me') == 'LABEL version=\"1.0\" maintainer=\"me\"'\n\n\nassert _volume('/data') == 'VOLUME /data'\nassert _volume(['/data', '/logs']) == 'VOLUME [\"/data\", \"/logs\"]'\n\n\nassert _shell(['/bin/bash', '-c']) == 'SHELL [\"/bin/bash\", \"-c\"]'\n\n\nassert 'CMD curl' in _healthcheck('curl -f http://localhost/', i='30s')\nassert _healthcheck('curl localhost', i='30s', t='10s') == 'HEALTHCHECK --interval=30s --timeout=10s CMD curl localhost'\nassert _healthcheck('curl localhost') == 'HEALTHCHECK CMD curl localhost'\n\n\nassert _on_build(_run('echo triggered')) == 'ONBUILD RUN echo triggered'",
+    "crumbs": [
+      "core"
+    ]
+  },
+  {
+    "objectID": "core.html#dockerfile-instructions",
+    "href": "core.html#dockerfile-instructions",
+    "title": "core",
+    "section": "",
+    "text": "instr creates a Dockerfile instruction string from a keyword and value. Factory functions (from_, run_, cmd_, etc.) wrap instr for each Dockerfile keyword, handling formatting details like tag joining, JSON exec form, and multi-command chaining.\n\nassert _instr('RUN', 'echo hello') == 'RUN echo hello'\n\n\n\nEach function maps to a Dockerfile keyword with a trailing _ to avoid clashing with Python builtins.\n\nassert _from('python', '3.11') == 'FROM python:3.11'\nassert _from('ubuntu', as_='builder') == 'FROM ubuntu AS builder'\nassert _from('alpine') == 'FROM alpine'\n\n\nassert _run('apt-get update') == 'RUN apt-get update'\nr = _run(['apt-get update', 'apt-get install -y curl'])\nassert 'apt-get update && ' in r\nassert 'apt-get install -y curl' in r\n\n\nassert _apt_install('curl', 'wget', y=True) == 'RUN apt-get update && apt-get install -y curl wget'\nassert _apt_install('git') == 'RUN apt-get update && apt-get install git'\n\n\nassert _cmd(['python', 'app.py']) == 'CMD [\"python\", \"app.py\"]'\nassert _cmd('echo hello') == 'CMD echo hello'\n\n\nassert _copy('.', '/app') == 'COPY . /app'\nassert _copy('/build/out', '/app', from_='builder') == 'COPY --from=builder /build/out /app'\nassert _copy('app/', '.', link=True) == 'COPY --link app/ .'\nassert _copy('/app', '/app', from_='builder', link=True) == 'COPY --from=builder --link /app /app'\n\n\nassert _workdir('/app') == 'WORKDIR /app'\n\n\nassert _env('PATH', '/usr/local/bin') == 'ENV PATH=/usr/local/bin'\nassert _env('DEBIAN_FRONTEND=noninteractive') == 'ENV DEBIAN_FRONTEND=noninteractive'\n\n\nassert _expose(8080) == 'EXPOSE 8080'\n\n\nassert _entrypoint(['python', '-m', 'flask']) == 'ENTRYPOINT [\"python\", \"-m\", \"flask\"]'\n\n\nassert _arg('VERSION', '1.0') == 'ARG VERSION=1.0'\nassert _arg('VERSION') == 'ARG VERSION'\n\n\nassert _label(version='1.0', maintainer='me') == 'LABEL version=\"1.0\" maintainer=\"me\"'\n\n\nassert _volume('/data') == 'VOLUME /data'\nassert _volume(['/data', '/logs']) == 'VOLUME [\"/data\", \"/logs\"]'\n\n\nassert _shell(['/bin/bash', '-c']) == 'SHELL [\"/bin/bash\", \"-c\"]'\n\n\nassert 'CMD curl' in _healthcheck('curl -f http://localhost/', i='30s')\nassert _healthcheck('curl localhost', i='30s', t='10s') == 'HEALTHCHECK --interval=30s --timeout=10s CMD curl localhost'\nassert _healthcheck('curl localhost') == 'HEALTHCHECK CMD curl localhost'\n\n\nassert _on_build(_run('echo triggered')) == 'ONBUILD RUN echo triggered'",
+    "crumbs": [
+      "core"
+    ]
+  },
+  {
+    "objectID": "core.html#dockerfile-builder",
+    "href": "core.html#dockerfile-builder",
+    "title": "core",
+    "section": "Dockerfile Builder",
+    "text": "Dockerfile Builder\nThe Dockerfile class provides a fluent interface for building Dockerfiles. Start with a base image, chain instruction methods, then render or save.\nEach method is one line – it creates an instruction and appends it, returning self for chaining.\n\nparsed = _parse(\"# comment\\nFROM python:3.11\\nRUN apt-get update && \\\\\\n    apt-get install -y curl\\nCOPY . /app\")\nprint(parsed)\nassert len(parsed) == 3\nassert parsed[0] == 'FROM python:3.11'\nassert 'apt-get install -y curl' in parsed[1]\n\n\nsource\n\nDockerfile\n\ndef Dockerfile(\n    items:NoneType=None, rest:VAR_POSITIONAL, use_list:bool=False, match:NoneType=None\n):\n\nFluent builder for Dockerfiles\n\ndf = (Dockerfile().from_('python:3.11-slim')\n    .run('pip install flask')\n    .copy('.', '/app')\n    .workdir('/app')\n    .expose(5000)\n    .cmd(['python', 'app.py']))\n\nexpected = \"\"\"FROM python:3.11-slim\nRUN pip install flask\nCOPY . /app\nWORKDIR /app\nEXPOSE 5000\nCMD [\\\"python\\\", \\\"app.py\\\"]\"\"\"\n\nassert str(df) == expected\nprint(df)\n\n\n# run_mount: cache mounts for fast rebuilds\ndf = (Dockerfile().from_('python:3.12-slim')\n    .run_mount('pip install -r requirements.txt', target='/root/.cache/pip')\n    .run_mount('uv sync --frozen', target='/root/.cache/uv')\n    .run_mount('apt-get install -y curl', type='cache', target='/var/cache/apt'))\ns = str(df)\nassert \"RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt\" in s\nassert \"RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen\" in s\nprint(df)\n\nMulti-stage builds work naturally:\n\ndf = (Dockerfile().from_('golang:1.21', as_='builder')\n    .workdir('/src')\n    .copy('.', '.')\n    .run('go build -o /app')\n    .from_('alpine')\n    .copy('/app', '/app', from_='builder')\n    .cmd(['/app']))\n\nassert 'FROM golang:1.21 AS builder' in str(df)\nassert 'COPY --from=builder /app /app' in str(df)\nprint(df)\n\nMulti-command RUN chains with &&:\n\ndf = (Dockerfile().from_('ubuntu:22.04').run(['apt-get update', 'apt-get install -y python3', 'rm -rf /var/lib/apt/lists/*']))\nprint(df)\n\n\n\nLoading from an existing Dockerfile\nUse Dockerfile.load() to read an existing Dockerfile. save() returns the Path it wrote to.\n\nimport tempfile\ntmp = tempfile.mkdtemp()\nPath(f'{tmp}/Dockerfile').write_text(\"# My app\\nFROM python:3.11-slim\\nRUN apt-get update && \\\\\\n    apt-get install -y curl\\nCOPY . /app\\nCMD [\\\"python\\\", \\\"app.py\\\"]\")\n\n# Load existing Dockerfile\ndf = Dockerfile.load(f'{tmp}/Dockerfile')\nassert len(df) == 4\nassert df[0] == 'FROM python:3.11-slim'\n\n# save returns the path and writes the file\np = df.save(f'{tmp}/Dockerfile')\nassert Path(p).exists()\n\n# chain after loading\ndf2 = df.run('echo hi')\nassert len(df2) == 5\nprint(df)\n\nFROM python:3.11-slim\nRUN apt-get update && apt-get install -y curl\nCOPY . /app\nCMD [\"python\", \"app.py\"]",
+    "crumbs": [
+      "core"
+    ]
+  },
+  {
+    "objectID": "core.html#build-run-test",
+    "href": "core.html#build-run-test",
+    "title": "core",
+    "section": "Build, Run, Test",
+    "text": "Build, Run, Test\nThese top-level functions wrap the Docker CLI for the common workflow: build an image from a Dockerfile, run a container, and test that a command succeeds inside an image.\n\nRequires Docker daemon\nThe functions below need a running Docker daemon.\n\nsource\n\n\nCli\n\ndef Cli(\n    args:VAR_POSITIONAL, kwargs:VAR_KEYWORD\n):\n\n*Base: call builds flags → _run(), getattr dispatches subcommands*\n\nsource\n\n\nDocker\n\ndef Docker(\n    no_creds:bool=False\n):\n\nWrap docker CLI: getattr dispatches subcommands, kwargs become flags\n\nsource\n\n\ncalldocker\n\ndef calldocker(\n    args:VAR_POSITIONAL, no_creds:bool=False\n):\n\nRun a docker CLI command, return stdout. Respects DOCKR_RUNTIME env var (default: docker).\n\nsource\n\n\nDockerfile.build\n\ndef build(\n    df:Dockerfile, tag:str=None, path:str='.', rm:bool=True, no_creds:bool=False\n):\n\nBuild image from Dockerfile. path is the build context directory.\n\nsource\n\n\ntest\n\ndef test(\n    img_or_tag:str, cmd\n):\n\nRun cmd in image, return True if exit code 0\n\nsource\n\n\nrun\n\ndef run(\n    img_or_tag:str, detach:bool=False, ports:NoneType=None, name:NoneType=None, remove:bool=False,\n    command:NoneType=None\n):\n\nRun a container, return container ID (detached) or output\n\n\nConvenience functions\n\nsource\n\n\ncontainers\n\ndef containers(\n    all:bool=False\n):\n\nList running containers (names)\n\nsource\n\n\nimages\n\ndef images(\n    \n):\n\nList image tags\n\nsource\n\n\nstop\n\ndef stop(\n    name_or_id:str\n):\n\nStop a container by name or ID\n\nsource\n\n\nlogs\n\ndef logs(\n    name_or_id:str, n:int=10\n):\n\nTail logs of a container\n\nsource\n\n\nrm\n\ndef rm(\n    name_or_id:str, force:bool=False\n):\n\nRemove a container by name or ID\n\nsource\n\n\nrmi\n\ndef rmi(\n    image:str, force:bool=False\n):\n\nRemove an image by name or ID\n\n\nExample: FastHTML app with uv\nA realistic Dockerfile for a FastHTML app that uses uv for dependency management, installs system packages, and is designed to run with a mounted volume for persistent data.\n\ndf = (Dockerfile().from_('python', '3.12-slim')\n    .apt_install('curl', 'sqlite3', y=True)\n    .run('pip install uv')\n    .workdir('/app')\n    .copy('pyproject.toml', '.')\n    .run('uv export --no-hashes -o requirements.txt && pip install -r requirements.txt')\n    .copy('.', '.')\n    .volume('/app/data')\n    .expose(5001)\n    .cmd(['python', 'main.py']))\n\nprint(df)\n\n\nimport tempfile\ntmp = tempfile.mkdtemp()\n\ndf = Dockerfile().from_('alpine').run('echo hello &gt; /greeting.txt').cmd(['cat', '/greeting.txt'])\ntry:\n    tag = df.build(tag='fastops-test:hello', path=tmp, no_creds=True)\n    print(f'Built: {tag}')\n    out = run(tag, remove=True)\n    print(f'Output: {out}')\n    rmi(tag)\n    print('Cleaned up.')\nexcept Exception as e: print(f'Docker not available: {e}')\n\nDocker not available: name 'os' is not defined\n\n\n\n\nEnd-to-end: FastHTML + FastLite todo app\n\nimport tempfile, os\napp_dir = Path(tempfile.mkdtemp()) / 'fasthtml-todo'\napp_dir.mkdir()\n\n# --- main.py: FastHTML + FastLite todo app ---\n(app_dir / 'main.py').write_text('''import json as jsonlib\nfrom fasthtml.common import *\n\ndb = database('data/todos.db')\ntodos = db.t.todos\nif todos not in db.t: todos.create(id=int, title=str, done=bool, pk='id')\nTodo = todos.dataclass()\n\napp, rt = fast_app(live=False)\n\n@rt('/')\ndef get():\n    items = [Li(f\"{'✓' if t.done else '○'} {t.title}\", id=f'todo-{t.id}') for t in todos()]\n    return Titled('Todos',\n        Ul(*items),\n        Form(Input(name='title', placeholder='New todo...'), Button('Add'), action='/add', method='post'))\n\n@rt('/add', methods=['post'])\ndef post(title: str):\n    todos.insert(Todo(title=title, done=False))\n    return Redirect('/')\n\n@rt('/api/todos')\ndef api():\n    data = [dict(id=t.id, title=t.title, done=t.done) for t in todos()]\n    return Response(jsonlib.dumps(data), media_type='application/json')\n\nserve(host='0.0.0.0', port=5001)\n''')\n\n# --- requirements.txt ---\n(app_dir / 'requirements.txt').write_text('python-fasthtml\\n')\n\nprint(f'App dir: {app_dir}')\nprint('Files:', os.listdir(app_dir))\n\nApp dir: /tmp/tmpatb77qy_/fasthtml-todo\nFiles: ['requirements.txt', 'main.py']\n\n\n\ndf = (Dockerfile()\n    .from_('python', '3.12-slim')\n    .workdir('/app')\n    .copy('requirements.txt', '.')\n    .run('pip install --no-cache-dir -r requirements.txt')\n    .copy('.', '.')\n    .volume('/app/data')\n    .expose(5001)\n    .cmd(['python', 'main.py']))\n\nprint(df)\n\n\nimport time\nfrom fastcore.net import urlread, urljson\n\ntag = 'fastops-fasthtml:latest'\nname = 'fastops-fasthtml-demo'\ntry:\n    df.build(tag=tag, path=str(app_dir), no_creds=True)\n    print(f'Built: {tag}')\n    try: rm(name, force=True)\n    except: pass\n    cid = run(tag, detach=True, ports={'5001/tcp': 5001}, name=name)\n    print(f'Container: {cid[:12]}')\n    time.sleep(3)\n\n    # Add some todos via POST\n    url = 'http://localhost:5001'\n    for t in ['Buy milk', 'Write docs', 'Ship fastops']: urlread(f'{url}/add', title=t)\n    # Fetch the JSON API\n    for t in urljson(f'{url}/api/todos'): print(f\"  {'✓' if t['done'] else '○'} {t['title']}\")\n    print(f'\\nLogs:')\n    print(logs(name, n=3))\nexcept IOError as e: print(f'Docker not available: {e}')\nfinally:\n    try: rm(name, force=True)\n    except: pass\n    try: rmi(tag)\n    except: pass\n    print('Cleaned up.')\n\nBuilt: fastops-fasthtml:latest\nContainer: aed89d887421\nDocker not available: &lt;urlopen error [Errno 111] Connection refused&gt;\nCleaned up.",
+    "crumbs": [
+      "core"
+    ]
+  },
+  {
+    "objectID": "caddy.html",
+    "href": "caddy.html",
+    "title": "caddy",
+    "section": "",
+    "text": "caddyfile() generates the Caddyfile text. caddy() writes it and returns service kwargs for Compose.svc().\n\nsource\n\n\n\ndef caddyfile(\n    domain, app:str='app', port:int=5001, dns:NoneType=None, email:NoneType=None, crowdsec:bool=False,\n    cloudflared:bool=False\n):\n\nMinimal Caddyfile for reverse-proxying app:port from domain\n\n# Minimal\ncf = caddyfile('myapp.example.com', port=5001)\nassert 'myapp.example.com {' in cf\nassert '    reverse_proxy app:5001' in cf\nassert cf.count('{') == 1\nprint(cf)\n\n\n# With Cloudflare DNS\ncf = caddyfile('myapp.example.com', port=5001, dns='cloudflare', email='me@example.com')\nassert 'email me@example.com' in cf\nassert 'acme_dns cloudflare {$CLOUDFLARE_API_TOKEN}' in cf\nprint(cf)\n\n\n# With CrowdSec\ncf = caddyfile('myapp.example.com', port=5001, crowdsec=True)\nassert 'api_url http://crowdsec:8080' in cf\nassert '    crowdsec\\n' in cf\nassert 'api_key {$CROWDSEC_API_KEY}' in cf\nprint(cf)\n\n\n# Cloudflared mode: HTTP prefix\ncf = caddyfile('myapp.example.com', port=5001, cloudflared=True)\nassert cf.startswith('http://myapp.example.com {')\nassert 'reverse_proxy app:5001' in cf\nprint(cf)",
+    "crumbs": [
+      "caddy"
+    ]
+  },
+  {
+    "objectID": "caddy.html#caddyfile-generation",
+    "href": "caddy.html#caddyfile-generation",
+    "title": "caddy",
+    "section": "",
+    "text": "caddyfile() generates the Caddyfile text. caddy() writes it and returns service kwargs for Compose.svc().\n\nsource\n\n\n\ndef caddyfile(\n    domain, app:str='app', port:int=5001, dns:NoneType=None, email:NoneType=None, crowdsec:bool=False,\n    cloudflared:bool=False\n):\n\nMinimal Caddyfile for reverse-proxying app:port from domain\n\n# Minimal\ncf = caddyfile('myapp.example.com', port=5001)\nassert 'myapp.example.com {' in cf\nassert '    reverse_proxy app:5001' in cf\nassert cf.count('{') == 1\nprint(cf)\n\n\n# With Cloudflare DNS\ncf = caddyfile('myapp.example.com', port=5001, dns='cloudflare', email='me@example.com')\nassert 'email me@example.com' in cf\nassert 'acme_dns cloudflare {$CLOUDFLARE_API_TOKEN}' in cf\nprint(cf)\n\n\n# With CrowdSec\ncf = caddyfile('myapp.example.com', port=5001, crowdsec=True)\nassert 'api_url http://crowdsec:8080' in cf\nassert '    crowdsec\\n' in cf\nassert 'api_key {$CROWDSEC_API_KEY}' in cf\nprint(cf)\n\n\n# Cloudflared mode: HTTP prefix\ncf = caddyfile('myapp.example.com', port=5001, cloudflared=True)\nassert cf.startswith('http://myapp.example.com {')\nassert 'reverse_proxy app:5001' in cf\nprint(cf)",
+    "crumbs": [
+      "caddy"
+    ]
+  },
+  {
+    "objectID": "caddy.html#services",
+    "href": "caddy.html#services",
+    "title": "caddy",
+    "section": "Services",
+    "text": "Services\n\nsource\n\ncaddy\n\ndef caddy(\n    domain, app:str='app', port:int=5001, dns:NoneType=None, email:NoneType=None, crowdsec:bool=False,\n    cloudflared:bool=False, conf:str='Caddyfile', kw:VAR_KEYWORD\n):\n\nWrite Caddyfile and return Caddy service kwargs for Compose.svc()\n\nimport tempfile\nwith tempfile.TemporaryDirectory() as tmp:\n    kw = caddy('myapp.example.com', port=5001, conf=f'{tmp}/Caddyfile')\n    assert kw['image'] == 'caddy:2'\n    assert kw['ports'] == ['80:80', '443:443', '443:443/udp']\n    assert kw['depends_on'] == ['app']\n    assert 'myapp.example.com {' in Path(f'{tmp}/Caddyfile').read_text()\n    print('caddy() basic OK')\n\nwith tempfile.TemporaryDirectory() as tmp:\n    kw = caddy('myapp.example.com', dns='cloudflare', conf=f'{tmp}/Caddyfile')\n    assert kw['image'] == 'serfriz/caddy-cloudflare:latest'\n    assert kw['env'] == {'CLOUDFLARE_API_TOKEN': '${CLOUDFLARE_API_TOKEN}'}\n    print('caddy() cloudflare OK')\n\nwith tempfile.TemporaryDirectory() as tmp:\n    kw = caddy('myapp.example.com', crowdsec=True, conf=f'{tmp}/Caddyfile')\n    assert kw['image'] == 'serfriz/caddy-crowdsec:latest'\n    assert 'CROWDSEC_API_KEY' in kw['env']\n    print('caddy() crowdsec OK')\n\nwith tempfile.TemporaryDirectory() as tmp:\n    kw = caddy('myapp.example.com', cloudflared=True, conf=f'{tmp}/Caddyfile')\n    assert kw['ports'] is None\n    assert Path(f'{tmp}/Caddyfile').read_text().startswith('http://myapp.example.com {')\n    print('caddy() cloudflared OK: no ports')\n\nwith tempfile.TemporaryDirectory() as tmp:\n    kw = caddy('myapp.example.com', crowdsec=True, dns='cloudflare', conf=f'{tmp}/Caddyfile')\n    assert kw['image'] == 'ghcr.io/buildplan/csdp-caddy:latest'\n    print('caddy() crowdsec+cloudflare OK')\n\ncaddy() basic OK\ncaddy() cloudflare OK\ncaddy() crowdsec OK\ncaddy() cloudflared OK: no ports\ncaddy() crowdsec+cloudflare OK\n\n\n\nsource\n\n\ncloudflared_svc\n\ndef cloudflared_svc(\n    token_env:str='CF_TUNNEL_TOKEN', kw:VAR_KEYWORD\n):\n\nCloudflare tunnel service kwargs for Compose.svc()\n\nkw = cloudflared_svc()\nassert kw['image'] == 'cloudflare/cloudflared:latest'\nassert kw['command'] == 'tunnel --no-autoupdate run'\nassert kw['env'] == {'TUNNEL_TOKEN': '${CF_TUNNEL_TOKEN}'}\nprint('cloudflared_svc() OK')\n\n\nsource\n\n\ncrowdsec\n\ndef crowdsec(\n    collections:NoneType=None, bouncer_key_env:str='CROWDSEC_BOUNCER_KEY', kw:VAR_KEYWORD\n):\n\nCrowdSec agent service kwargs for Compose.svc()\n\nkw = crowdsec()\nassert kw['image'] == 'crowdsecurity/crowdsec:latest'\nassert 'crowdsecurity/caddy' in kw['env']['COLLECTIONS']\nassert kw['env']['BOUNCER_KEY_caddy'] == '${CROWDSEC_BOUNCER_KEY}'\nassert 'crowdsec-db' in kw['volumes']\nprint('crowdsec() OK')\n\nkw2 = crowdsec(collections=['crowdsecurity/linux', 'crowdsecurity/nginx'])\nassert 'crowdsecurity/nginx' in kw2['env']['COLLECTIONS']\nprint('crowdsec() custom collections OK')",
+    "crumbs": [
+      "caddy"
+    ]
+  },
+  {
+    "objectID": "caddy.html#example-fasthtml-app-with-caddy",
+    "href": "caddy.html#example-fasthtml-app-with-caddy",
+    "title": "caddy",
+    "section": "Example: FastHTML app with Caddy",
+    "text": "Example: FastHTML app with Caddy\nMinimal stacks — run any with dc.save('docker-compose.yml') then docker compose up -d.\n\nimport tempfile\nfrom fastops import Compose\n\ntmp = tempfile.mkdtemp()\n\n# Stack A: Direct (Caddy auto-TLS, ports 80+443 open)\ndc = (Compose()\n    .svc('app', build='.', networks=['web'], restart='unless-stopped')\n    .svc('caddy', **caddy('myapp.example.com', port=5001, conf=f'{tmp}/Caddyfile'))\n    .network('web').volume('caddy_data').volume('caddy_config'))\n\nd = dc.to_dict()\nassert d['services']['caddy']['image'] == 'caddy:2'\nassert '80:80' in d['services']['caddy']['ports']\nprint('=== Stack A: Direct (Caddy auto-TLS) ===')\nprint(dc)\n\n=== Stack A: Direct (Caddy auto-TLS) ===\nservices:\n  app:\n    build: .\n    networks:\n    - web\n    restart: unless-stopped\n  caddy:\n    image: caddy:2\n    depends_on:\n    - app\n    ports:\n    - 80:80\n    - 443:443\n    - 443:443/udp\n    volumes:\n    - .//tmp/tmpaxsor1dz/Caddyfile:/etc/caddy/Caddyfile\n    - caddy_data:/data\n    - caddy_config:/config\n    networks:\n    - web\n    restart: unless-stopped\nnetworks:\n  web: null\nvolumes:\n  caddy_data: null\n  caddy_config: null\n\n\n\n\nimport tempfile\nfrom fastops import Compose\n\ntmp = tempfile.mkdtemp()\n\n# Stack B: cloudflared tunnel (zero open ports)\ndc = (Compose()\n    .svc('app', build='.', networks=['web'], restart='unless-stopped')\n    .svc('caddy', **caddy('myapp.example.com', port=5001, cloudflared=True, conf=f'{tmp}/Caddyfile'))\n    .svc('cloudflared', **cloudflared_svc(), networks=['web'])\n    .network('web').volume('caddy_data').volume('caddy_config'))\n\nd = dc.to_dict()\nassert 'ports' not in d['services']['caddy']\nassert d['services']['cloudflared']['image'] == 'cloudflare/cloudflared:latest'\nprint('=== Stack B: Cloudflared (zero open ports) ===')\nprint(dc)\n\n=== Stack B: Cloudflared (zero open ports) ===\nservices:\n  app:\n    build: .\n    networks:\n    - web\n    restart: unless-stopped\n  caddy:\n    image: caddy:2\n    depends_on:\n    - app\n    volumes:\n    - .//tmp/tmp1x3wkkm4/Caddyfile:/etc/caddy/Caddyfile\n    - caddy_data:/data\n    - caddy_config:/config\n    networks:\n    - web\n    restart: unless-stopped\n  cloudflared:\n    image: cloudflare/cloudflared:latest\n    command: tunnel --no-autoupdate run\n    environment:\n    - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}\n    restart: unless-stopped\n    networks:\n    - web\nnetworks:\n  web: null\nvolumes:\n  caddy_data: null\n  caddy_config: null\n\n\n\n\nimport tempfile\nfrom fastops import Compose\n\ntmp = tempfile.mkdtemp()\n\n# Stack C: CrowdSec + cloudflared (full security)\ndc = (Compose()\n    .svc('app', build='.', networks=['web'], restart='unless-stopped')\n    .svc('caddy', **caddy('myapp.example.com', port=5001, crowdsec=True, cloudflared=True, conf=f'{tmp}/Caddyfile'))\n    .svc('crowdsec', **crowdsec())\n    .svc('cloudflared', **cloudflared_svc(), networks=['web'])\n    .network('web')\n    .volume('caddy_data').volume('caddy_config')\n    .volume('crowdsec-db').volume('crowdsec-config'))\n\nd = dc.to_dict()\nassert d['services']['caddy']['image'] == 'serfriz/caddy-crowdsec:latest'\nassert d['services']['crowdsec']['image'] == 'crowdsecurity/crowdsec:latest'\nprint('=== Stack C: CrowdSec + cloudflared ===')\nprint(dc)\n\n=== Stack C: CrowdSec + cloudflared ===\nservices:\n  app:\n    build: .\n    networks:\n    - web\n    restart: unless-stopped\n  caddy:\n    image: serfriz/caddy-crowdsec:latest\n    depends_on:\n    - app\n    environment:\n    - CROWDSEC_API_KEY=${CROWDSEC_API_KEY}\n    volumes:\n    - .//tmp/tmpcvibth_w/Caddyfile:/etc/caddy/Caddyfile\n    - caddy_data:/data\n    - caddy_config:/config\n    networks:\n    - web\n    restart: unless-stopped\n  crowdsec:\n    image: crowdsecurity/crowdsec:latest\n    environment:\n    - COLLECTIONS=crowdsecurity/linux crowdsecurity/caddy crowdsecurity/http-cve\n    - BOUNCER_KEY_caddy=${CROWDSEC_BOUNCER_KEY}\n    volumes:\n    - crowdsec-db:/var/lib/crowdsec/data\n    - crowdsec-config:/etc/crowdsec\n    networks:\n    - web\n    restart: unless-stopped\n  cloudflared:\n    image: cloudflare/cloudflared:latest\n    command: tunnel --no-autoupdate run\n    environment:\n    - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}\n    restart: unless-stopped\n    networks:\n    - web\nnetworks:\n  web: null\nvolumes:\n  caddy_data: null\n  caddy_config: null\n  crowdsec-db: null\n  crowdsec-config: null",
+    "crumbs": [
+      "caddy"
+    ]
+  }
+]

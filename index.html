@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="description" content="End-to-end developer operations toolkit: Docker, VPS, DNS, Caddy, and CI/CD from Python">
+
+<title>fastops</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-000f0825b9c55ed21d14970d810c14a9.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="fastops">
+<meta property="og:description" content="End-to-end developer operations toolkit: Docker, VPS, DNS, Caddy, and CI/CD from Python">
+<meta property="og:site_name" content="fastops">
+<meta name="twitter:title" content="fastops">
+<meta name="twitter:description" content="End-to-end developer operations toolkit: Docker, VPS, DNS, Caddy, and CI/CD from Python">
+<meta name="twitter:card" content="summary">
+</head>
+
+<body class="nav-sidebar floating nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">fastops</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./index.html">fastops</a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">fastops</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./core.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">core</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./compose.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">compose</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./caddy.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">caddy</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./multipass.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">multipass</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./cloudflare.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">cloudflare</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./apps.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">apps</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./vps.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">vps</span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#install" id="toc-install" class="nav-link active" data-scroll-target="#install">Install</a></li>
+  <li><a href="#the-dockerfile-builder" id="toc-the-dockerfile-builder" class="nav-link" data-scroll-target="#the-dockerfile-builder">The Dockerfile Builder</a>
+  <ul class="collapse">
+  <li><a href="#batteries-included-apt_install-and-a-built-in-escape-hatch" id="toc-batteries-included-apt_install-and-a-built-in-escape-hatch" class="nav-link" data-scroll-target="#batteries-included-apt_install-and-a-built-in-escape-hatch">Batteries included: <code>apt_install</code> and a built-in escape hatch</a></li>
+  <li><a href="#multi-stage-builds" id="toc-multi-stage-builds" class="nav-link" data-scroll-target="#multi-stage-builds">Multi-stage builds</a></li>
+  </ul></li>
+  <li><a href="#building-and-running-images" id="toc-building-and-running-images" class="nav-link" data-scroll-target="#building-and-running-images">Building and Running Images</a>
+  <ul class="collapse">
+  <li><a href="#raw-cli-access-via-dk" id="toc-raw-cli-access-via-dk" class="nav-link" data-scroll-target="#raw-cli-access-via-dk">Raw CLI access via <code>dk</code></a></li>
+  </ul></li>
+  <li><a href="#docker-compose" id="toc-docker-compose" class="nav-link" data-scroll-target="#docker-compose">Docker Compose</a>
+  <ul class="collapse">
+  <li><a href="#appfile-standard-python-webapp-dockerfile" id="toc-appfile-standard-python-webapp-dockerfile" class="nav-link" data-scroll-target="#appfile-standard-python-webapp-dockerfile"><code>appfile()</code> — standard Python webapp Dockerfile</a></li>
+  </ul></li>
+  <li><a href="#reverse-proxying-with-caddy" id="toc-reverse-proxying-with-caddy" class="nav-link" data-scroll-target="#reverse-proxying-with-caddy">Reverse Proxying with Caddy</a>
+  <ul class="collapse">
+  <li><a href="#plain-caddy-auto-tls-ports-80-and-443" id="toc-plain-caddy-auto-tls-ports-80-and-443" class="nav-link" data-scroll-target="#plain-caddy-auto-tls-ports-80-and-443">Plain Caddy — auto-TLS, ports 80 and 443</a></li>
+  <li><a href="#dns-01-challenge-no-port-80-required" id="toc-dns-01-challenge-no-port-80-required" class="nav-link" data-scroll-target="#dns-01-challenge-no-port-80-required">DNS-01 challenge — no port 80 required</a></li>
+  <li><a href="#cloudflare-tunnel-zero-open-ports" id="toc-cloudflare-tunnel-zero-open-ports" class="nav-link" data-scroll-target="#cloudflare-tunnel-zero-open-ports">Cloudflare tunnel — zero open ports</a></li>
+  <li><a href="#full-security-stack-crowdsec-cloudflare-tunnel" id="toc-full-security-stack-crowdsec-cloudflare-tunnel" class="nav-link" data-scroll-target="#full-security-stack-crowdsec-cloudflare-tunnel">Full security stack — CrowdSec + Cloudflare tunnel</a></li>
+  <li><a href="#caddy-image-selection" id="toc-caddy-image-selection" class="nav-link" data-scroll-target="#caddy-image-selection">Caddy image selection</a></li>
+  </ul></li>
+  <li><a href="#swag-nginx-alternative" id="toc-swag-nginx-alternative" class="nav-link" data-scroll-target="#swag-nginx-alternative">SWAG (nginx alternative)</a></li>
+  <li><a href="#local-linux-vms-with-multipass" id="toc-local-linux-vms-with-multipass" class="nav-link" data-scroll-target="#local-linux-vms-with-multipass">Local Linux VMs with Multipass</a>
+  <ul class="collapse">
+  <li><a href="#cloud_init_yaml-vm-bootstrap-config" id="toc-cloud_init_yaml-vm-bootstrap-config" class="nav-link" data-scroll-target="#cloud_init_yaml-vm-bootstrap-config">cloud_init_yaml — VM bootstrap config</a></li>
+  <li><a href="#launch_docker_vm-the-one-liner" id="toc-launch_docker_vm-the-one-liner" class="nav-link" data-scroll-target="#launch_docker_vm-the-one-liner">launch_docker_vm — the one-liner</a></li>
+  </ul></li>
+  <li><a href="#cloudflare-dns-and-tunnels" id="toc-cloudflare-dns-and-tunnels" class="nav-link" data-scroll-target="#cloudflare-dns-and-tunnels">Cloudflare DNS and Tunnels</a>
+  <ul class="collapse">
+  <li><a href="#dns_record-the-one-liner" id="toc-dns_record-the-one-liner" class="nav-link" data-scroll-target="#dns_record-the-one-liner">dns_record — the one-liner</a></li>
+  </ul></li>
+  <li><a href="#app-dockerfiles" id="toc-app-dockerfiles" class="nav-link" data-scroll-target="#app-dockerfiles">App Dockerfiles</a>
+  <ul class="collapse">
+  <li><a href="#python-fasthtml" id="toc-python-fasthtml" class="nav-link" data-scroll-target="#python-fasthtml">Python / FastHTML</a></li>
+  <li><a href="#fastapi-react-two-stage" id="toc-fastapi-react-two-stage" class="nav-link" data-scroll-target="#fastapi-react-two-stage">FastAPI + React (two-stage)</a></li>
+  <li><a href="#go-and-rust-two-stage-distroless" id="toc-go-and-rust-two-stage-distroless" class="nav-link" data-scroll-target="#go-and-rust-two-stage-distroless">Go and Rust (two-stage → distroless)</a></li>
+  <li><a href="#cache-mounts-for-faster-rebuilds" id="toc-cache-mounts-for-faster-rebuilds" class="nav-link" data-scroll-target="#cache-mounts-for-faster-rebuilds">Cache mounts for faster rebuilds</a></li>
+  </ul></li>
+  <li><a href="#vps-provisioning" id="toc-vps-provisioning" class="nav-link" data-scroll-target="#vps-provisioning">VPS Provisioning</a>
+  <ul class="collapse">
+  <li><a href="#vps_init-cloud-init-yaml" id="toc-vps_init-cloud-init-yaml" class="nav-link" data-scroll-target="#vps_init-cloud-init-yaml">vps_init — cloud-init YAML</a></li>
+  <li><a href="#hetzner-provisioning" id="toc-hetzner-provisioning" class="nav-link" data-scroll-target="#hetzner-provisioning">Hetzner provisioning</a></li>
+  <li><a href="#deploy-sync-and-start" id="toc-deploy-sync-and-start" class="nav-link" data-scroll-target="#deploy-sync-and-start">deploy — sync and start</a></li>
+  </ul></li>
+  <li><a href="#end-to-end-deploy-a-python-app" id="toc-end-to-end-deploy-a-python-app" class="nav-link" data-scroll-target="#end-to-end-deploy-a-python-app">End-to-End: Deploy a Python App</a></li>
+  <li><a href="#podman-support" id="toc-podman-support" class="nav-link" data-scroll-target="#podman-support">Podman Support</a></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/Karthik777/fastops/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div><div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="index.html.md"><i class="bi bi-file-code"></i>CommonMark</a></li></ul></div></nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">fastops</h1>
+</div>
+
+<div>
+  <div class="description">
+    End-to-end developer operations toolkit: Docker, VPS, DNS, Caddy, and CI/CD from Python
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
+<section id="install" class="level2">
+<h2 class="anchored" data-anchor-id="install">Install</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install fastops</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Requires Python 3.10+ and a <code>docker</code> (or <code>podman</code>) CLI on your PATH.</p>
+</section>
+<section id="the-dockerfile-builder" class="level2">
+<h2 class="anchored" data-anchor-id="the-dockerfile-builder">The Dockerfile Builder</h2>
+<p><a href="https://Karthik777.github.io/fastops/core.html#dockerfile"><code>Dockerfile</code></a> is an immutable, fluent builder — every method returns a new instance, so you can safely branch, compose, or pass it to functions.</p>
+<div id="015fb837" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> Dockerfile</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> (Dockerfile()</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    .from_(<span class="st">'python'</span>, <span class="st">'3.12-slim'</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    .workdir(<span class="st">'/app'</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    .copy(<span class="st">'requirements.txt'</span>, <span class="st">'.'</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    .run(<span class="st">'pip install --no-cache-dir -r requirements.txt'</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    .copy(<span class="st">'.'</span>, <span class="st">'.'</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    .expose(<span class="dv">8080</span>)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    .cmd([<span class="st">'python'</span>, <span class="st">'app.py'</span>]))</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="batteries-included-apt_install-and-a-built-in-escape-hatch" class="level3">
+<h3 class="anchored" data-anchor-id="batteries-included-apt_install-and-a-built-in-escape-hatch">Batteries included: <code>apt_install</code> and a built-in escape hatch</h3>
+<p><code>apt_install(*pkgs, y=False)</code> chains <code>apt-get update &amp;&amp; apt-get install</code> for you. Any Dockerfile keyword not explicitly modelled is available via <code>__getattr__</code> — just call it as a method.</p>
+<div id="3cacacaa" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>df_ubuntu <span class="op">=</span> (Dockerfile()</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    .from_(<span class="st">'ubuntu'</span>, <span class="st">'22.04'</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    .apt_install(<span class="st">'curl'</span>, <span class="st">'git'</span>, y<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    .run(<span class="st">'pip install uv'</span>))</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Any unknown attribute becomes an instruction: df.KEYWORD(args)</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>df_scratch <span class="op">=</span> (Dockerfile()</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    .from_(<span class="st">'scratch'</span>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    .add(<span class="st">'binary'</span>, <span class="st">'/binary'</span>)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    .entrypoint([<span class="st">'/binary'</span>]))</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_ubuntu)</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_scratch)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="multi-stage-builds" class="level3">
+<h3 class="anchored" data-anchor-id="multi-stage-builds">Multi-stage builds</h3>
+<p>Chain multiple <code>from_()</code> calls — the builder handles stage aliases naturally.</p>
+<div id="90158045" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>df_ms <span class="op">=</span> (Dockerfile()</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    .from_(<span class="st">'golang:1.21'</span>, as_<span class="op">=</span><span class="st">'builder'</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    .workdir(<span class="st">'/src'</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    .copy(<span class="st">'.'</span>, <span class="st">'.'</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    .run(<span class="st">'go build -o /app'</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    .from_(<span class="st">'alpine'</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    .copy(<span class="st">'/app'</span>, <span class="st">'/app'</span>, from_<span class="op">=</span><span class="st">'builder'</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    .cmd([<span class="st">'/app'</span>]))</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_ms)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p><code>Dockerfile.load(path)</code> parses an existing file into the builder for further chaining. <code>df.save(path)</code> writes it back and returns the <code>Path</code>.</p>
+</section>
+</section>
+<section id="building-and-running-images" class="level2">
+<h2 class="anchored" data-anchor-id="building-and-running-images">Building and Running Images</h2>
+<p>These helpers require a running Docker daemon. They wrap <code>docker build</code>, <code>docker run</code>, <code>docker ps</code>, etc. via subprocess.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> Dockerfile, run, test, containers, images, stop, logs, rm, rmi</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> Dockerfile().from_(<span class="st">'python'</span>, <span class="st">'3.12-slim'</span>).cmd([<span class="st">'python'</span>, <span class="st">'-c'</span>, <span class="st">'print("hi")'</span>])</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>img <span class="op">=</span> df.build(tag<span class="op">=</span><span class="st">'myapp:latest'</span>)        <span class="co"># saves Dockerfile + runs docker build</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>ok  <span class="op">=</span> test(img, <span class="st">'python -c "import os"'</span>)   <span class="co"># True if exit code 0</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>cid <span class="op">=</span> run(img, detach<span class="op">=</span><span class="va">True</span>, ports<span class="op">=</span>{<span class="dv">8080</span>: <span class="dv">8080</span>}, name<span class="op">=</span><span class="st">'myapp'</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(containers())    <span class="co"># ['myapp']</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(logs(<span class="st">'myapp'</span>, n<span class="op">=</span><span class="dv">5</span>))</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>stop(<span class="st">'myapp'</span>)<span class="op">;</span> rm(<span class="st">'myapp'</span>)<span class="op">;</span> rmi(img)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="raw-cli-access-via-dk" class="level3">
+<h3 class="anchored" data-anchor-id="raw-cli-access-via-dk">Raw CLI access via <code>dk</code></h3>
+<p>For anything not covered by helpers, <code>dk</code> (a <a href="https://Karthik777.github.io/fastops/core.html#docker"><code>Docker()</code></a> singleton) dispatches any subcommand. kwargs become flags using the same convention: single-char <code>k=v</code> → <code>-k v</code>, multi-char <code>key=v</code> → <code>--key=v</code>.</p>
+<div id="debf7184" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> dk</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(dk.version())</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> e:</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'Docker not running: </span><span class="sc">{</span>e<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Equivalent shell commands:</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co"># dk.ps(format='{{.Names}}', a=True)   → docker ps --format={{.Names}} -a</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co"># dk.image('prune', f=True)            → docker image prune -f</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co"># dk.build('.', t='myapp', rm=True)    → docker build . -t myapp --rm</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="docker-compose" class="level2">
+<h2 class="anchored" data-anchor-id="docker-compose">Docker Compose</h2>
+<p><a href="https://Karthik777.github.io/fastops/compose.html#compose"><code>Compose</code></a> is a fluent builder for <code>docker-compose.yml</code>. Chain <code>.svc()</code>, <code>.network()</code>, <code>.volume()</code>, then <code>.save()</code> to write or <code>.up()</code> to write and start.</p>
+<div id="6147f1a8" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> Compose</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>dc <span class="op">=</span> (Compose()</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    .svc(<span class="st">'db'</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>         image<span class="op">=</span><span class="st">'postgres:16'</span>,</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>         env<span class="op">=</span>{<span class="st">'POSTGRES_PASSWORD'</span>: <span class="st">'secret'</span>},</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>         volumes<span class="op">=</span>{<span class="st">'pgdata'</span>: <span class="st">'/var/lib/postgresql/data'</span>})</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    .svc(<span class="st">'redis'</span>, image<span class="op">=</span><span class="st">'redis:7-alpine'</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    .svc(<span class="st">'app'</span>,</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>         build<span class="op">=</span><span class="st">'.'</span>,</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>         ports<span class="op">=</span>{<span class="dv">8080</span>: <span class="dv">8080</span>},</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>         env<span class="op">=</span>{<span class="st">'DATABASE_URL'</span>: <span class="st">'postgresql://postgres:secret@db/app'</span>},</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>         depends_on<span class="op">=</span>[<span class="st">'db'</span>, <span class="st">'redis'</span>],</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>         networks<span class="op">=</span>[<span class="st">'web'</span>])</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    .network(<span class="st">'web'</span>)</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    .volume(<span class="st">'pgdata'</span>))</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(dc)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="appfile-standard-python-webapp-dockerfile" class="level3">
+<h3 class="anchored" data-anchor-id="appfile-standard-python-webapp-dockerfile"><a href="https://Karthik777.github.io/fastops/compose.html#appfile"><code>appfile()</code></a> — standard Python webapp Dockerfile</h3>
+<p>A one-liner for the most common Dockerfile pattern: copy requirements, pip install, copy source, expose port, run <code>main.py</code>.</p>
+<div id="181841da" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> appfile</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(appfile(port<span class="op">=</span><span class="dv">8080</span>, image<span class="op">=</span><span class="st">'python:3.12-slim'</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Use <code>Compose.load(path)</code> to round-trip an existing <code>docker-compose.yml</code>. <code>DockerCompose(path)</code> wraps the CLI for running compose commands against any file.</p>
+</section>
+</section>
+<section id="reverse-proxying-with-caddy" class="level2">
+<h2 class="anchored" data-anchor-id="reverse-proxying-with-caddy">Reverse Proxying with Caddy</h2>
+<p>The <a href="https://Karthik777.github.io/fastops/caddy.html#caddy"><code>caddy</code></a> module generates a <code>Caddyfile</code> and returns service kwargs for <a href="https://Karthik777.github.io/fastops/compose.html#compose.svc"><code>Compose.svc()</code></a>. Four topologies are supported, from simplest to most secure.</p>
+<section id="plain-caddy-auto-tls-ports-80-and-443" class="level3">
+<h3 class="anchored" data-anchor-id="plain-caddy-auto-tls-ports-80-and-443">Plain Caddy — auto-TLS, ports 80 and 443</h3>
+<div id="cf96c89b" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> caddyfile, caddy</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tempfile</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># What the Caddyfile looks like:</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(caddyfile(<span class="st">'myapp.example.com'</span>, port<span class="op">=</span><span class="dv">8080</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="c97e9a1d" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> tempfile.TemporaryDirectory() <span class="im">as</span> tmp:</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    dc <span class="op">=</span> (Compose()</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>        .svc(<span class="st">'app'</span>, build<span class="op">=</span><span class="st">'.'</span>, networks<span class="op">=</span>[<span class="st">'web'</span>])</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>        .svc(<span class="st">'caddy'</span>, <span class="op">**</span>caddy(<span class="st">'myapp.example.com'</span>, port<span class="op">=</span><span class="dv">8080</span>,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>                              conf<span class="op">=</span><span class="ss">f'</span><span class="sc">{</span>tmp<span class="sc">}</span><span class="ss">/Caddyfile'</span>))</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>        .network(<span class="st">'web'</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>        .volume(<span class="st">'caddy_data'</span>).volume(<span class="st">'caddy_config'</span>))</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(dc)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="dns-01-challenge-no-port-80-required" class="level3">
+<h3 class="anchored" data-anchor-id="dns-01-challenge-no-port-80-required">DNS-01 challenge — no port 80 required</h3>
+<p>Pass <code>dns='cloudflare'</code> or <code>dns='duckdns'</code> to use DNS-01 ACME. This lets you get TLS certs on machines that have port 80 blocked.</p>
+<div id="0969f89b" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(caddyfile(<span class="st">'myapp.example.com'</span>, port<span class="op">=</span><span class="dv">8080</span>, dns<span class="op">=</span><span class="st">'cloudflare'</span>, email<span class="op">=</span><span class="st">'me@example.com'</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="cloudflare-tunnel-zero-open-ports" class="level3">
+<h3 class="anchored" data-anchor-id="cloudflare-tunnel-zero-open-ports">Cloudflare tunnel — zero open ports</h3>
+<p>With <code>cloudflared=True</code>, Caddy listens on plain HTTP and cloudflared tunnels traffic in. No ports need to be open on the host at all.</p>
+<div id="a4d6a7fa" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> cloudflared_svc</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> tempfile.TemporaryDirectory() <span class="im">as</span> tmp:</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    dc <span class="op">=</span> (Compose()</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        .svc(<span class="st">'app'</span>, build<span class="op">=</span><span class="st">'.'</span>, networks<span class="op">=</span>[<span class="st">'web'</span>])</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        .svc(<span class="st">'caddy'</span>, <span class="op">**</span>caddy(<span class="st">'myapp.example.com'</span>, port<span class="op">=</span><span class="dv">8080</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>                              cloudflared<span class="op">=</span><span class="va">True</span>, conf<span class="op">=</span><span class="ss">f'</span><span class="sc">{</span>tmp<span class="sc">}</span><span class="ss">/Caddyfile'</span>))</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>        .svc(<span class="st">'cloudflared'</span>, <span class="op">**</span>cloudflared_svc(), networks<span class="op">=</span>[<span class="st">'web'</span>])</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>        .network(<span class="st">'web'</span>)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>        .volume(<span class="st">'caddy_data'</span>).volume(<span class="st">'caddy_config'</span>))</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(dc)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="full-security-stack-crowdsec-cloudflare-tunnel" class="level3">
+<h3 class="anchored" data-anchor-id="full-security-stack-crowdsec-cloudflare-tunnel">Full security stack — CrowdSec + Cloudflare tunnel</h3>
+<p>Add <code>crowdsec=True</code> to wire in the CrowdSec intrusion-detection bouncer. The image is selected automatically based on the combination of <a href="https://Karthik777.github.io/fastops/caddy.html#crowdsec"><code>crowdsec</code></a> and <code>dns</code>.</p>
+<div id="80d5278b" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> crowdsec</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> tempfile.TemporaryDirectory() <span class="im">as</span> tmp:</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    dc <span class="op">=</span> (Compose()</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>        .svc(<span class="st">'app'</span>, build<span class="op">=</span><span class="st">'.'</span>, networks<span class="op">=</span>[<span class="st">'web'</span>])</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        .svc(<span class="st">'caddy'</span>, <span class="op">**</span>caddy(<span class="st">'myapp.example.com'</span>, port<span class="op">=</span><span class="dv">8080</span>,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>                              crowdsec<span class="op">=</span><span class="va">True</span>, cloudflared<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>                              conf<span class="op">=</span><span class="ss">f'</span><span class="sc">{</span>tmp<span class="sc">}</span><span class="ss">/Caddyfile'</span>))</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>        .svc(<span class="st">'crowdsec'</span>, <span class="op">**</span>crowdsec())</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>        .svc(<span class="st">'cloudflared'</span>, <span class="op">**</span>cloudflared_svc(), networks<span class="op">=</span>[<span class="st">'web'</span>])</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>        .network(<span class="st">'web'</span>)</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>        .volume(<span class="st">'caddy_data'</span>).volume(<span class="st">'caddy_config'</span>)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>        .volume(<span class="st">'crowdsec-db'</span>).volume(<span class="st">'crowdsec-config'</span>))</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(dc)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="caddy-image-selection" class="level3">
+<h3 class="anchored" data-anchor-id="caddy-image-selection">Caddy image selection</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th><a href="https://Karthik777.github.io/fastops/caddy.html#crowdsec"><code>crowdsec</code></a></th>
+<th><code>dns</code></th>
+<th>Image</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>False</td>
+<td>None</td>
+<td><code>caddy:2</code></td>
+</tr>
+<tr class="even">
+<td>True</td>
+<td>None</td>
+<td><code>serfriz/caddy-crowdsec:latest</code></td>
+</tr>
+<tr class="odd">
+<td>False</td>
+<td><code>'cloudflare'</code></td>
+<td><code>serfriz/caddy-cloudflare:latest</code></td>
+</tr>
+<tr class="even">
+<td>True</td>
+<td><code>'cloudflare'</code></td>
+<td><code>ghcr.io/buildplan/csdp-caddy:latest</code></td>
+</tr>
+<tr class="odd">
+<td>False</td>
+<td><code>'duckdns'</code></td>
+<td><code>serfriz/caddy-duckdns:latest</code></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="swag-nginx-alternative" class="level2">
+<h2 class="anchored" data-anchor-id="swag-nginx-alternative">SWAG (nginx alternative)</h2>
+<p>If you prefer <a href="https://docs.linuxserver.io/general/swag/">LinuxServer SWAG</a> (nginx + Certbot), use <a href="https://Karthik777.github.io/fastops/compose.html#swag"><code>swag()</code></a>. It generates an nginx site-conf and returns service kwargs for <a href="https://Karthik777.github.io/fastops/compose.html#compose.svc"><code>Compose.svc()</code></a>.</p>
+<div id="dd1fbb56" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> swag, swag_conf</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># nginx site-conf for proxying to app:8080</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(swag_conf(<span class="st">'myapp.example.com'</span>, port<span class="op">=</span><span class="dv">8080</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="0b784376" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> tempfile.TemporaryDirectory() <span class="im">as</span> tmp:</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    dc <span class="op">=</span> (Compose()</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>        .svc(<span class="st">'app'</span>, build<span class="op">=</span><span class="st">'.'</span>, networks<span class="op">=</span>[<span class="st">'web'</span>])</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>        .svc(<span class="st">'swag'</span>, <span class="op">**</span>swag(<span class="st">'myapp.example.com'</span>, port<span class="op">=</span><span class="dv">8080</span>,</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>                            conf_path<span class="op">=</span><span class="ss">f'</span><span class="sc">{</span>tmp<span class="sc">}</span><span class="ss">/proxy.conf'</span>))</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>        .network(<span class="st">'web'</span>)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>        .volume(<span class="st">'swag_config'</span>))</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(dc)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="local-linux-vms-with-multipass" class="level2">
+<h2 class="anchored" data-anchor-id="local-linux-vms-with-multipass">Local Linux VMs with Multipass</h2>
+<p>The <code>multipass</code> module wraps the <a href="https://multipass.run">Multipass</a> CLI for spinning up ephemeral Ubuntu VMs. Ideal for testing deployment scripts locally — no cloud account needed.</p>
+<section id="cloud_init_yaml-vm-bootstrap-config" class="level3">
+<h3 class="anchored" data-anchor-id="cloud_init_yaml-vm-bootstrap-config">cloud_init_yaml — VM bootstrap config</h3>
+<div id="fef14914" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> cloud_init_yaml</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Default: Docker pre-installed</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(cloud_init_yaml(docker<span class="op">=</span><span class="va">True</span>, packages<span class="op">=</span>[<span class="st">'htop'</span>, <span class="st">'tree'</span>]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="launch_docker_vm-the-one-liner" class="level3">
+<h3 class="anchored" data-anchor-id="launch_docker_vm-the-one-liner">launch_docker_vm — the one-liner</h3>
+<p><a href="https://Karthik777.github.io/fastops/multipass.html#launch_docker_vm"><code>launch_docker_vm()</code></a> is the convenience wrapper that pairs <a href="https://Karthik777.github.io/fastops/multipass.html#cloud_init_yaml"><code>cloud_init_yaml</code></a> with <a href="https://Karthik777.github.io/fastops/multipass.html#launch"><code>launch</code></a>. It covers the most common use case: spin up a clean Ubuntu VM with Docker ready to go.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> launch_docker_vm, vm_ip, exec_, transfer, delete, vms</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Spin up an Ubuntu VM with Docker pre-installed (takes ~60s first run)</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>vm <span class="op">=</span> launch_docker_vm(<span class="st">'test-vm'</span>, cpus<span class="op">=</span><span class="dv">2</span>, memory<span class="op">=</span><span class="st">'2G'</span>)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(vms(running<span class="op">=</span><span class="va">True</span>))             <span class="co"># ['test-vm']</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(vm_ip(<span class="st">'test-vm'</span>))              <span class="co"># '192.168.64.5'</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>exec_(<span class="st">'test-vm'</span>, <span class="st">'docker'</span>, <span class="st">'ps'</span>)    <span class="co"># run any command in the VM</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>transfer(<span class="st">'./docker-compose.yml'</span>,</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>         <span class="st">'test-vm:/home/ubuntu/docker-compose.yml'</span>)  <span class="co"># copy files</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>delete(<span class="st">'test-vm'</span>)                    <span class="co"># purge when done</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><a href="https://Karthik777.github.io/fastops/multipass.html#launch"><code>launch()</code></a> accepts <code>cloud_init</code> as either a YAML string or a path to an existing file — if it’s a string it writes a temp file, passes <code>--cloud-init</code>, and cleans up automatically.</p>
+<p>For raw CLI access use the <code>mp</code> singleton (same pattern as <code>dk</code>):</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> mp</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>mp.info(<span class="st">"test-vm"</span>)            <span class="co"># → multipass info test-vm</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>mp.snapshot(<span class="st">"test-vm"</span>, name<span class="op">=</span><span class="st">"before-deploy"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+</section>
+<section id="cloudflare-dns-and-tunnels" class="level2">
+<h2 class="anchored" data-anchor-id="cloudflare-dns-and-tunnels">Cloudflare DNS and Tunnels</h2>
+<p>The <code>cloudflare</code> module wraps the official <a href="https://github.com/cloudflare/cloudflare-python">Cloudflare Python SDK</a> for managing DNS records and Zero Trust tunnels. Set <code>CLOUDFLARE_API_TOKEN</code> in your environment.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install <span class="st">"fastops[cloudflare]"</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co"># or: pip install cloudflare</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="dns_record-the-one-liner" class="level3">
+<h3 class="anchored" data-anchor-id="dns_record-the-one-liner">dns_record — the one-liner</h3>
+<p><a href="https://Karthik777.github.io/fastops/cloudflare.html#dns_record"><code>dns_record()</code></a> is the convenience wrapper: reads <code>CLOUDFLARE_API_TOKEN</code> from env, looks up the zone, deletes any existing record with the same name and type, then creates the new one.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> dns_record, CF</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Point myapp.example.com at a server IP</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>record <span class="op">=</span> dns_record(<span class="st">'example.com'</span>, <span class="st">'myapp'</span>, <span class="st">'1.2.3.4'</span>, proxied<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Full control via CF() for multi-step workflows</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>cf <span class="op">=</span> CF()  <span class="co"># reads CLOUDFLARE_API_TOKEN</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="co"># DNS</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>zid <span class="op">=</span> cf.zone_id(<span class="st">'example.com'</span>)</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>records <span class="op">=</span> cf.dns_records(zid)</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>cf.delete_record(zid, records[<span class="dv">0</span>][<span class="st">'id'</span>])</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Tunnels</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>tunnel <span class="op">=</span> cf.create_tunnel(<span class="st">'myapp-prod'</span>)</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>token  <span class="op">=</span> cf.tunnel_token(tunnel[<span class="st">'id'</span>])</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a><span class="co"># → pass token as CF_TUNNEL_TOKEN in your environment</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+</section>
+<section id="app-dockerfiles" class="level2">
+<h2 class="anchored" data-anchor-id="app-dockerfiles">App Dockerfiles</h2>
+<p>The <code>apps</code> module generates complete, production-ready Dockerfiles for common stacks. All variants support uv-based installs, extra apt packages, and optional healthchecks.</p>
+<section id="python-fasthtml" class="level3">
+<h3 class="anchored" data-anchor-id="python-fasthtml">Python / FastHTML</h3>
+<div id="b74bad7e" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> python_app, fasthtml_app</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Generic single-stage Python app</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(python_app(port<span class="op">=</span><span class="dv">8080</span>, cmd<span class="op">=</span>[<span class="st">'uvicorn'</span>, <span class="st">'main:app'</span>, <span class="st">'--host'</span>, <span class="st">'0.0.0.0'</span>]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div id="218193af" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="co"># FastHTML shortcut: uv + port 5001 + sensible defaults</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(fasthtml_app(port<span class="op">=</span><span class="dv">5001</span>, pkgs<span class="op">=</span>[<span class="st">'rclone'</span>], volumes<span class="op">=</span>[<span class="st">'/app/data'</span>]))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="fastapi-react-two-stage" class="level3">
+<h3 class="anchored" data-anchor-id="fastapi-react-two-stage">FastAPI + React (two-stage)</h3>
+<div id="c36ff118" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> fastapi_react</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Stage 1: Node builds the frontend; Stage 2: Python serves the API</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(fastapi_react(port<span class="op">=</span><span class="dv">8000</span>, frontend_dir<span class="op">=</span><span class="st">'frontend'</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="go-and-rust-two-stage-distroless" class="level3">
+<h3 class="anchored" data-anchor-id="go-and-rust-two-stage-distroless">Go and Rust (two-stage → distroless)</h3>
+<div id="b4c4930b" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> go_app, rust_app</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(go_app(port<span class="op">=</span><span class="dv">8080</span>, go_version<span class="op">=</span><span class="st">'1.22'</span>))</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(rust_app(port<span class="op">=</span><span class="dv">8080</span>, binary<span class="op">=</span><span class="st">'myapp'</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="cache-mounts-for-faster-rebuilds" class="level3">
+<h3 class="anchored" data-anchor-id="cache-mounts-for-faster-rebuilds">Cache mounts for faster rebuilds</h3>
+<p><code>run_mount()</code> adds <code>RUN --mount=type=cache,...</code> to any instruction, keeping pip/uv/cargo/go caches across builds:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> (Dockerfile().from_(<span class="st">'python:3.12-slim'</span>)</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>    .run_mount(<span class="st">'uv sync --frozen --no-dev'</span>, target<span class="op">=</span><span class="st">'/root/.cache/uv'</span>)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    .run_mount(<span class="st">'go mod download'</span>,           target<span class="op">=</span><span class="st">'/go/pkg/mod'</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+</section>
+<section id="vps-provisioning" class="level2">
+<h2 class="anchored" data-anchor-id="vps-provisioning">VPS Provisioning</h2>
+<p>The <code>vps</code> module covers the full lifecycle from a blank cloud server to a running Compose stack: cloud-init generation, Hetzner provisioning, and SSH-based deployment. No cloud SDK required beyond the <code>hcloud</code> CLI and <code>ssh</code>/<code>rsync</code>.</p>
+<section id="vps_init-cloud-init-yaml" class="level3">
+<h3 class="anchored" data-anchor-id="vps_init-cloud-init-yaml">vps_init — cloud-init YAML</h3>
+<div id="eb8f8344" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> vps_init</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Full bootstrap: UFW, deploy user, Docker, Cloudflare tunnel</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>yaml <span class="op">=</span> vps_init(</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'prod-01'</span>,</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>    pub_keys<span class="op">=</span><span class="st">'ssh-rsa AAAA...'</span>,</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a>    docker<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>    packages<span class="op">=</span>[<span class="st">'git'</span>, <span class="st">'htop'</span>],</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(yaml[:<span class="dv">500</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="hetzner-provisioning" class="level3">
+<h3 class="anchored" data-anchor-id="hetzner-provisioning">Hetzner provisioning</h3>
+<p><a href="https://Karthik777.github.io/fastops/vps.html#create"><code>create()</code></a> wraps <code>hcloud server create</code>. Pass the cloud-init YAML string directly — it handles the temp-file lifecycle automatically.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> create, servers, server_ip, delete</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>ip <span class="op">=</span> create(</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">'prod-01'</span>,</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    image<span class="op">=</span><span class="st">'ubuntu-24.04'</span>,</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>    server_type<span class="op">=</span><span class="st">'cx22'</span>,</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>    location<span class="op">=</span><span class="st">'nbg1'</span>,</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>    cloud_init<span class="op">=</span>yaml,</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>    ssh_keys<span class="op">=</span>[<span class="st">'my-laptop'</span>],</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(servers())   <span class="co"># [{'name': 'prod-01', 'ip': '...', 'status': 'running'}]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Requires <code>hcloud</code> CLI and <code>HCLOUD_TOKEN</code> in env.</p>
+</section>
+<section id="deploy-sync-and-start" class="level3">
+<h3 class="anchored" data-anchor-id="deploy-sync-and-start">deploy — sync and start</h3>
+<p><a href="https://Karthik777.github.io/fastops/vps.html#deploy"><code>deploy()</code></a> accepts a <a href="https://Karthik777.github.io/fastops/compose.html#compose"><code>Compose</code></a> object or a raw YAML string, rsyncs it to the server, and runs <code>docker compose up -d</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> deploy</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>deploy(dc, ip, user<span class="op">=</span><span class="st">'deploy'</span>, key<span class="op">=</span><span class="st">'~/.ssh/id_ed25519'</span>, path<span class="op">=</span><span class="st">'/srv/myapp'</span>)</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. mkdir -p /srv/myapp  (via SSH)</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. rsync docker-compose.yml → prod-01:/srv/myapp/</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. docker compose up -d  (via SSH)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>For one-off commands use <a href="https://Karthik777.github.io/fastops/vps.html#run_ssh"><code>run_ssh()</code></a>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> run_ssh</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(run_ssh(ip, <span class="st">'docker ps'</span>, user<span class="op">=</span><span class="st">'deploy'</span>, key<span class="op">=</span><span class="st">'~/.ssh/id_ed25519'</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+</section>
+<section id="end-to-end-deploy-a-python-app" class="level2">
+<h2 class="anchored" data-anchor-id="end-to-end-deploy-a-python-app">End-to-End: Deploy a Python App</h2>
+<p>Here is the complete workflow for deploying a Python webapp with Caddy TLS, a Cloudflare tunnel, and CrowdSec — starting from a blank Python file.</p>
+<p><strong>Step 1: generate the configs</strong> (pure Python, no daemon needed)</p>
+<div id="07cdfcd4" class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> Dockerfile</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> Compose, appfile</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> caddy, cloudflared_svc, crowdsec</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tempfile</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>DOMAIN <span class="op">=</span> <span class="st">'myapp.example.com'</span></span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a>PORT   <span class="op">=</span> <span class="dv">8080</span></span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Standard Python app Dockerfile</span></span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> appfile(port<span class="op">=</span>PORT)</span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> tempfile.TemporaryDirectory() <span class="im">as</span> tmp:</span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a>    dc <span class="op">=</span> (Compose()</span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a>        .svc(<span class="st">'app'</span>,         build<span class="op">=</span><span class="st">'.'</span>,  networks<span class="op">=</span>[<span class="st">'web'</span>])</span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a>        .svc(<span class="st">'caddy'</span>,       <span class="op">**</span>caddy(DOMAIN, port<span class="op">=</span>PORT,</span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a>                                   crowdsec<span class="op">=</span><span class="va">True</span>, cloudflared<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a>                                   conf<span class="op">=</span><span class="ss">f'</span><span class="sc">{</span>tmp<span class="sc">}</span><span class="ss">/Caddyfile'</span>))</span>
+<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a>        .svc(<span class="st">'crowdsec'</span>,    <span class="op">**</span>crowdsec())</span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a>        .svc(<span class="st">'cloudflared'</span>, <span class="op">**</span>cloudflared_svc(), networks<span class="op">=</span>[<span class="st">'web'</span>])</span>
+<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a>        .network(<span class="st">'web'</span>)</span>
+<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a>        .volume(<span class="st">'caddy_data'</span>).volume(<span class="st">'caddy_config'</span>)</span>
+<span id="cb30-22"><a href="#cb30-22" aria-hidden="true" tabindex="-1"></a>        .volume(<span class="st">'crowdsec-db'</span>).volume(<span class="st">'crowdsec-config'</span>))</span>
+<span id="cb30-23"><a href="#cb30-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'--- Dockerfile ---'</span>)</span>
+<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(df)</span>
+<span id="cb30-26"><a href="#cb30-26" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'</span><span class="ch">\n</span><span class="st">--- docker-compose.yml ---'</span>)</span>
+<span id="cb30-27"><a href="#cb30-27" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(dc)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p><strong>Step 2: save and deploy</strong> (requires Docker daemon)</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>df.save(<span class="st">'Dockerfile'</span>)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>dc.save(<span class="st">'docker-compose.yml'</span>)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>dc.up()  <span class="co"># writes file + runs docker compose up -d</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Step 3: wire up DNS</strong> (requires <code>CLOUDFLARE_API_TOKEN</code>)</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> dns_record</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>dns_record(<span class="st">'example.com'</span>, <span class="st">'myapp'</span>, <span class="st">'1.2.3.4'</span>, proxied<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Step 4: test locally first</strong> (requires Multipass)</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb33"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> launch_docker_vm, vm_ip, exec_, transfer, delete</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> dns_record</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>vm <span class="op">=</span> launch_docker_vm(<span class="st">'test-vm'</span>)</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>transfer(<span class="st">'./docker-compose.yml'</span>, <span class="st">'test-vm:/home/ubuntu/'</span>)</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>exec_(<span class="st">'test-vm'</span>, <span class="st">'docker'</span>, <span class="st">'compose'</span>, <span class="st">'up'</span>, <span class="st">'-d'</span>)</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>ip <span class="op">=</span> vm_ip(<span class="st">'test-vm'</span>)</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>dns_record(<span class="st">'example.com'</span>, <span class="st">'myapp'</span>, ip)  <span class="co"># point DNS at the VM</span></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>delete(<span class="st">'test-vm'</span>)  <span class="co"># clean up</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Step 5: provision and deploy to a real server</strong> (requires <code>hcloud</code> CLI + <code>HCLOUD_TOKEN</code>)</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> vps_init, create, deploy</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> fastops <span class="im">import</span> dns_record</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Bootstrap a fresh Hetzner server</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>yaml <span class="op">=</span> vps_init(<span class="st">'prod-01'</span>, pub_keys<span class="op">=</span><span class="bu">open</span>(<span class="st">'~/.ssh/id_ed25519.pub'</span>).read(),</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>                docker<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>ip <span class="op">=</span> create(<span class="st">'prod-01'</span>, server_type<span class="op">=</span><span class="st">'cx22'</span>, location<span class="op">=</span><span class="st">'nbg1'</span>,</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>            cloud_init<span class="op">=</span>yaml, ssh_keys<span class="op">=</span>[<span class="st">'my-laptop'</span>])</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Point DNS at it</span></span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>dns_record(<span class="st">'example.com'</span>, <span class="st">'myapp'</span>, ip, proxied<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Sync Compose stack and start</span></span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>deploy(dc, ip, key<span class="op">=</span><span class="st">'~/.ssh/id_ed25519'</span>, path<span class="op">=</span><span class="st">'/srv/myapp'</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="podman-support" class="level2">
+<h2 class="anchored" data-anchor-id="podman-support">Podman Support</h2>
+<p>Set <code>DOCKR_RUNTIME=podman</code> to switch all CLI calls to podman. The generated Dockerfiles and Compose YAML are runtime-agnostic.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb35"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">DOCKR_RUNTIME</span><span class="op">=</span>podman</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Credential-stripping (<a href="https://Karthik777.github.io/fastops/core.html#_clean_cfg"><code>_clean_cfg()</code></a>) is skipped automatically for non-docker runtimes.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/Karthik777\.github\.io\/fastops");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/Karthik777/fastops/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
