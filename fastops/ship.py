@@ -27,7 +27,7 @@ _BUILDERS = {
 # %% ../nbs/13_ship.ipynb
 def ship(path='.', *, to='docker', domain=None, port=None, proxy='caddy', 
          preset='production', tls=True, tunnel=False, security=False, 
-         compliance=None, host=None, user='deploy', key=None, cloud=None):
+         compliance=None, host=None, user='deploy', key=None, cloud=None, resources=None):
     'Main orchestrator: detect → build → proxy → deploy'
     
     result = {
@@ -75,12 +75,46 @@ def ship(path='.', *, to='docker', domain=None, port=None, proxy='caddy',
     print('Building docker-compose configuration...')
     compose = Compose()
     
-    # App service
+    # Process resources first if provided
+    resource_env = {}
+    if resources:
+        print('Provisioning resources...')
+        from .resources import stack
+        
+        # Determine effective provider based on deployment target
+        resource_provider = 'docker'
+        if to in ('azure', 'aws', 'gcp'):
+            resource_provider = to
+        
+        # Build resource stack with the appropriate provider
+        # Wrap each resource function to apply provider
+        provider_resources = {}
+        for res_name, res_fn in resources.items():
+            # Create a wrapper that calls the function and applies the provider
+            def wrapper(fn=res_fn, prov=resource_provider):
+                return fn() if callable(fn) else fn
+            provider_resources[res_name] = wrapper
+        
+        # Get resources environment, compose services, and volumes
+        res_env, res_dc, res_vols = stack(provider_resources, provider=resource_provider)
+        
+        # Merge resource environment variables
+        resource_env.update(res_env)
+        
+        # Merge resource services into main compose
+        for item in res_dc:
+            compose = compose._add(item)
+    
+    # App service with resource environment
     app_name = Path(path).name or 'app'
     app_svc = service(
         build='.',
         ports={app_port: app_port}
     )
+    
+    # Add resource environment to app service
+    if resource_env:
+        app_svc['environment'] = resource_env
     
     # Load compliance defaults if specified
     compliance_config = {}
