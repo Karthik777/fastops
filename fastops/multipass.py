@@ -10,7 +10,7 @@ __all__ = ['mp', 'callmultipass', 'Multipass', 'cloud_init_yaml', 'launch', 'vms
 import os, json, subprocess, tempfile
 from pathlib import Path
 from fastcore.all import L
-from .core import Cli
+from .docker import Cli
 
 # %% ../nbs/03_multipass.ipynb #2e201deb
 def callmultipass(*args):
