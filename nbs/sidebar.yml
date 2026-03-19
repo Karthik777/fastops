@@ -3,9 +3,8 @@ website:
     contents:
       - index.ipynb
       - 00_core.ipynb
-      - 01_compose.ipynb
-      - 02_caddy.ipynb
+      - 01_cloudflare.ipynb
+      - 02_proxy.ipynb
       - 03_multipass.ipynb
-      - 04_cloudflare.ipynb
-      - 05_apps.ipynb
-      - 06_vps.ipynb
+      - 05_vps.ipynb
+      - 06_ship.ipynb
